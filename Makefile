@@ -14,7 +14,7 @@
 
 NAME := ircserv
 CXX := c++
-AUTHORS := gmanique
+AUTHORS := gmanique, amados-s and lupan
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 SRC_DIR = srcs
 OBJ_DIR = build

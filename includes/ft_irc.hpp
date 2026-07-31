@@ -31,6 +31,8 @@ je sais pas si y'en a besoin
 
 #include "defines.hpp"
 
+#include "Logger.hpp"
+#include "Client.hpp"
 #include "Server.hpp"
 
 #endif

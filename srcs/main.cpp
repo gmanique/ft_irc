@@ -19,10 +19,10 @@ int main(int ac, char **av)
 {
 	if (ac != 3 || !isPort(av[1]))
 	{
-		std::cerr << "Error: ft_irc needs 2 arguments, respectively the port (between 6665 and 6669) and the password.\n";
-		return (1);
+		LOG_ERROR("ft_irc needs 2 arguments, respectively the port (between 6665 and 6669) and the password.");
+		return (USAGE_ERROR);
 	}
 	Server test(6660 + (av[1][3] - '0'), av[2]);
 
-	return (0);
+	return (SUCCESS);
 }

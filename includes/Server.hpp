@@ -3,21 +3,35 @@
 
 #include "ft_irc.hpp"
 
+class Client;
+
 class Server {
 	private:
-		uint16_t	_port;	// normalement entre 6665 et 6669, le default est 6667
-		std::string	_password;
+		int						_port;      // Port d'ecoute (entre 6665 et 6669)
+		std::string				_password;  // Mot de passe du serveur
+		int						_serverFd;  // FD du socket d'ecoute du serveur
+		std::vector<pollfd>		_pollFds;   // Sockets surveilles
+		std::map<int, Client>	_clients;   // Clients connectes (cle = fd)
+
 	public:
 		Server();
-		Server(uint16_t	port);
-		Server(uint16_t	port, std::string password);
-		Server(std::string password);
+		Server(int port, const std::string& password);
 		~Server();
 
-		void		setPort(uint16_t port);
-		void		setPassword(std::string password);
-		uint16_t	getPort();
-		std::string getPassword();
+		void				setPort(int port);
+		void				setPassword(const std::string& password);
+		int					getPort() const;
+		const std::string&	getPassword() const;
+
+		void				init();   // Cree le socket, bind, listen
+		void				run();    // La boucle principale avec poll ou epoll ou autre
+
+		/*
+	private:
+		void                acceptNewClient();
+		void                handleClientData(int clientFd);
+		void                disconnectClient(int clientFd);
+*/
 };
 
 #endif

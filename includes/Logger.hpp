@@ -20,7 +20,9 @@
     X(WARNING,   COLOR_YELLOW,  "[WARNING]",  std::cerr) \
     X(USAGE,     COLOR_MAGENTA, "[USAGE]",    std::cerr) \
     X(ERROR,     COLOR_RED,     "[ERROR]",    std::cerr) \
-    X(PROTOCOL,  COLOR_YELLOW,  "[PROTOCOL]", std::cerr)
+    X(PROTOCOL,  COLOR_YELLOW,  "[PROTOCOL]", std::cerr) \
+    X(TRACE,     COLOR_GREY,    "[TRACE]",    std::cout)
+
 
 enum LogLevel {
 # define X(name, color, label, stream) LOG_LEVEL_##name,
@@ -49,6 +51,7 @@ class Logger {
 # define LOG_ERR            Logger(LOG_LEVEL_ERROR)
 # define LOG_USAGE          Logger(LOG_LEVEL_USAGE)
 # define LOG_PROTO          Logger(LOG_LEVEL_PROTOCOL)
+# define LOG_TRACE          Logger(LOG_LEVEL_TRACE)
 
 # define LOG_USER_WARN(u)   Logger(LOG_LEVEL_WARNING, u)
 # define LOG_USER_ERR(u)    Logger(LOG_LEVEL_ERROR, u)

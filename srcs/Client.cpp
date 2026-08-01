@@ -1,23 +1,23 @@
 #include "Client.hpp"
 
 Client::Client() : _fd(-1), _readBuffer("") {
-	DEBUG(std::cout << "[CLIENT] Creating struct with fd `" << _fd << "` and empty buffer.\n";);
+	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with fd `" << _fd << "` and empty buffer.";);
 }
 
 Client::Client(int fd) : _fd(fd), _readBuffer("") {
-	DEBUG(std::cout << "[CLIENT] Creating struct with fd `" << _fd << "` and empty buffer.\n";);
+	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with fd `" << _fd << "` and empty buffer.";);
 }
 
 Client::Client(int fd, std::string buf) : _fd(fd), _readBuffer(buf) {
-	DEBUG(std::cout << "[CLIENT] Creating struct with fd `" << _fd << "` and buffer `" << buf << "`.\n";);
+	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with fd `" << _fd << "` and buffer `" << buf << "`.";);
 }
 
 Client::Client(std::string buf) : _fd(-1), _readBuffer(buf) {
-	DEBUG(std::cout << "[CLIENT] Creating struct with fd `" << _fd << "` and buffer `" << buf << "`.\n";);
+	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with fd `" << _fd << "` and buffer `" << buf << "`.";);
 }
 
 Client::~Client() {
-	DEBUG(std::cout << "[CLIENT] Destroying struct.\n";);
+	DEBUG(LOG_TRACE << "[CLIENT] Destroying struct.";);
 }
 		
 void		Client::setFd(int fd) {

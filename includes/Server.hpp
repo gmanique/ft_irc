@@ -23,7 +23,7 @@ class Server {
 		int					getPort() const;
 		const std::string&	getPassword() const;
 
-		void				init();   // Cree le socket, bind, listen
+		int					init();   // Cree le socket, bind, listen
 		void				run();    // La boucle principale avec poll ou epoll ou autre
 
 		/*

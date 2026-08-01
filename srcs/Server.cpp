@@ -75,6 +75,9 @@ int	Server::init() {
 	return (SUCCESS);
 }
 
-void	Server::run() {
-	return ;
+int	Server::run() {
+
+	LOG_INFO << "Server starting";
+	
+	return (SUCCESS);
 }

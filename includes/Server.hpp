@@ -7,11 +7,17 @@ class Client;
 
 class Server {
 	private:
-		int						_port;      // Port d'ecoute (entre 6665 et 6669)
-		std::string				_password;  // Mot de passe du serveur
-		int						_serverFd;  // FD du socket d'ecoute du serveur
-		std::vector<pollfd>		_pollFds;   // Sockets surveilles
-		std::map<int, Client>	_clients;   // Clients connectes (cle = fd)
+		int						_port; // Port d'ecoute (entre 6665 et 6669)
+		std::string				_password;
+		int						_serverFd;
+		std::vector<pollfd>		_pollFds;
+		std::map<int, Client>	_clients; 
+
+		/*
+		void                	acceptNewClient();
+		void                	handleClientData(int clientFd);
+		void                	disconnectClient(int clientFd);
+		*/
 
 	public:
 		Server();
@@ -23,15 +29,9 @@ class Server {
 		int					getPort() const;
 		const std::string&	getPassword() const;
 
-		int					init();   // Cree le socket, bind, listen
-		void				run();    // La boucle principale avec poll ou epoll ou autre
+		int					init();
+		int					run();
 
-		/*
-	private:
-		void                acceptNewClient();
-		void                handleClientData(int clientFd);
-		void                disconnectClient(int clientFd);
-*/
 };
 
 #endif

@@ -23,27 +23,14 @@ int main(int ac, char **av)
 		LOG_USAGE << "Ircserv needs 2 arguments, respectively the port (between 6665 and 6669) and the password.\nExample : `./ircserv 6667 mySafePassword`\n";
 		return (USAGE_ERROR);
 	}
-	Server test(6660 + (av[1][3] - '0'), av[2]);
-	int	init_res = test.init();
+	Server irc(6660 + (av[1][3] - '0'), av[2]);
+	int	init_res = irc.init();
 	if (init_res)
 		return (init_res);
+	int	serv_res = irc.run();
+	if (serv_res)
+		return (serv_res);
 	return (SUCCESS);
 }
 
 
-/* main de test pour le logger */
-/*
-int main()
-{
-	LOG_DEBUG << "Message de debug";
-	LOG_INFO << "Message de info";
-	LOG_WARN << "Message de warning";
-	LOG_ERR << "Message de error";
-	LOG_USAGE << "Message de usage";
-	LOG_PROTO << "Message de proto";
-	LOG_USER_WARN("Username") << "Message de warn user";
-	LOG_USER_ERR("Roberto") << "Message de error user";
-	LOG_USER_PROTO("Roberta") << "Message de proto user";
-	return (0);
-}
-*/

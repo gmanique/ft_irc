@@ -13,11 +13,11 @@ class Client {
 		Client(int fd, std::string buf);
 		Client(std::string buf);
 		~Client();
-		int			&getFd();
-		std::string	&getBuffer();
-		void		setFd(int fd);
-		void		setBuffer(std::string buf);
-		void		appendBuffer(std::string buf);
+		int					getFd() const;
+		const std::string	&getBuffer() const;
+		void				setFd(int fd);
+		void				setBuffer(std::string buf);
+		void				appendBuffer(std::string buf);
 };
 
 

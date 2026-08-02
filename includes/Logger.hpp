@@ -53,9 +53,13 @@ class Logger {
 # define LOG_PROTO          Logger(LOG_LEVEL_PROTOCOL)
 # define LOG_TRACE          Logger(LOG_LEVEL_TRACE)
 
+# define LOG_USER_DEBUG(u)  Logger(LOG_LEVEL_DEBUG, u)
+# define LOG_USER_INFO(u)   Logger(LOG_LEVEL_INFO, u)
 # define LOG_USER_WARN(u)   Logger(LOG_LEVEL_WARNING, u)
 # define LOG_USER_ERR(u)    Logger(LOG_LEVEL_ERROR, u)
+# define LOG_USER_USAGE(u)  Logger(LOG_LEVEL_USAGE, u)
 # define LOG_USER_PROTO(u)  Logger(LOG_LEVEL_PROTOCOL, u)
+# define LOG_USER_TRACE(u)  Logger(LOG_LEVEL_TRACE, u)
 
 #endif
 

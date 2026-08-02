@@ -28,11 +28,11 @@ void		Client::setBuffer(std::string buf) {
 	_readBuffer = buf;
 }
 
-int			&Client::getFd() {
+int			Client::getFd() const {
 	return (_fd);
 }
 
-std::string &Client::getBuffer() {
+const std::string &Client::getBuffer() const {
 	return (_readBuffer);
 }
 

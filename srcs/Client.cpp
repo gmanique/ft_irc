@@ -40,3 +40,19 @@ void	Client::appendBuffer(std::string buf) {
 	_readBuffer += buf;
 }
 
+uint8_t	Client::extractCommand(std::string &command) {
+	size_t pos = _readBuffer.find("\n");
+	if (pos == std::string::npos)
+		return (0);
+
+	command = _readBuffer.substr(0, pos);
+
+	if (!command.empty() && command[command.size() - 1] == '\r') {
+		command.erase(command.size() - 1);
+	}
+
+	_readBuffer.erase(0, pos + 1);
+	return (1);
+}
+
+

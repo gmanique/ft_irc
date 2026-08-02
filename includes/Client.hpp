@@ -18,6 +18,8 @@ class Client {
 		void				setFd(int fd);
 		void				setBuffer(std::string buf);
 		void				appendBuffer(std::string buf);
+		
+		uint8_t				extractCommand(std::string &command);
 };
 
 

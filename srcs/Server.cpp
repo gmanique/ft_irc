@@ -115,8 +115,28 @@ void	Server::acceptNewClient() {
 void	Server::handleClientData(int clientFd, std::vector<int> &fdsToClose) {
 	DEBUG(LOG_DEBUG << "Entering Server::handleClientData";);
 
-	(void)clientFd;
-	(void)fdsToClose;
+	char buffer[MAX_MSG_SIZE];
+	std::memset(buffer, 0, MAX_MSG_SIZE);
+
+	ssize_t	bytesRead = recv(clientFd, buffer, MAX_MSG_SIZE-1, 0);
+	if (bytesRead <= 0) {
+		if (bytesRead == 0) {
+			LOG_INFO << "Client on fd " << clientFd << " disconnected (EOF).";
+		} else {
+			LOG_ERR << "Could not read (recv) from fd " << clientFd;
+		}
+		fdsToClose.push_back(clientFd);
+		return;
+	}
+
+	Client &client = _clients[clientFd];
+	client.appendBuffer(std::string(buffer, bytesRead));
+
+	std::string command;
+	while (client.extractCommand(command)) {
+		DEBUG(LOG_INFO << "Command received from client " << clientFd << " : " << command;);
+		//executeCommand(client, command);
+	}
 }
 
 void	Server::disconnectClient(int fd) {

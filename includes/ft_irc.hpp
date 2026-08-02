@@ -28,5 +28,6 @@
 #include "Client.hpp"
 #include "Channel.hpp"
 #include "Server.hpp"
+#include "Parser.hpp"
 
 #endif

@@ -153,8 +153,9 @@ void	Server::handleClientData(int clientFd, std::vector<int> &fdsToClose) {
 
 	std::string command;
 	while (client.extractCommand(command)) {
+		
 		DEBUG(LOG_INFO << "Command received from client " << clientFd << " : " << command;);
-		//executeCommand(client, command);
+		client.executeCommand(client, command);
 	}
 }
 

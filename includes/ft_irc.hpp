@@ -21,21 +21,10 @@
 #include <cerrno>
 #include <cstdlib>
 
-/* je sais pas si y'en a besoin
-#include <dirent.h>
-#include <netinet/in.h>
-#include <sys/epoll.h>
-#include <sys/wait.h>
-*/
+#include "defines.hpp"
 
-
-/* Permet d'implementer le make debug */
-# ifdef DEBUG_MODE
-#  define DEBUG(cmd) do { cmd; } while (0)
-# else
-#  define DEBUG(cmd) ((void)0)
-# endif
-
+#include "Logger.hpp"
+#include "Client.hpp"
 #include "Server.hpp"
 
 #endif

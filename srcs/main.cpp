@@ -38,6 +38,7 @@ int main(int ac, char **av)
 	int	serv_res = irc.run();
 	if (serv_res)
 		return (serv_res);
+
 	return (SUCCESS);
 }
 

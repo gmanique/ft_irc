@@ -13,11 +13,12 @@ class Server {
 		std::vector<pollfd>		_pollFds;
 		std::map<int, Client>	_clients; 
 
-		/*
-		void                	acceptNewClient();
-		void                	handleClientData(int clientFd);
-		void                	disconnectClient(int clientFd);
-		*/
+		uint8_t					_running;
+		
+		void					acceptNewClient();
+		void					handleClientData(int clientFd, std::vector<int> &fdsToClose);
+		void					disconnectClient(int fd);
+		
 
 	public:
 		Server();

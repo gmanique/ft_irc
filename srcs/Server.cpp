@@ -75,9 +75,90 @@ int	Server::init() {
 	return (SUCCESS);
 }
 
-int	Server::run() {
+void	Server::acceptNewClient() {
+	DEBUG(LOG_DEBUG << "Entering Server::acceptNewClient";);
+	sockaddr_in clientAddr;
+	socklen_t clientLen = sizeof(clientAddr);
 
-	LOG_INFO << "Server starting";
+	LOG_TRACE << "Trying to connect new client";
+	int clientFd = accept(_serverFd, (struct sockaddr*)&clientAddr, &clientLen);
+	if (clientFd < 0) {
+		LOG_ERR << "Client could not be accepted for an unknown reason";
+		return;
+	}
+
+	if (fcntl(clientFd, F_SETFL, O_NONBLOCK) < 0) {
+		LOG_ERR << "Could not activate non blocking mode.";
+		close(clientFd);
+		return;
+	}
+
+	pollfd pfd;
+	pfd.fd = clientFd;
+	pfd.events = POLLIN;
+	pfd.revents = 0;
+	_pollFds.push_back(pfd);
 	
+	try {
+		_clients[clientFd] = Client(clientFd);
+	} catch(const std::exception &e) {
+		LOG_ERR << "Client creation failed : " << e.what();
+		_pollFds.pop_back();
+		close(clientFd);
+		return;
+	}
+	LOG_INFO << "New client connected on " << clientFd;
+}
+
+
+// A faire
+void	Server::handleClientData(int clientFd, std::vector<int> &fdsToClose) {
+	DEBUG(LOG_DEBUG << "Entering Server::handleClientData";);
+
+	(void)clientFd;
+	(void)fdsToClose;
+}
+
+void	Server::disconnectClient(int fd) {
+	DEBUG(LOG_DEBUG << "Entering Server::disconnectClient";);
+	close(fd);
+	for (std::vector<pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it) {
+		if (it->fd == fd) {
+			_pollFds.erase(it);
+			LOG_INFO << "Client with fd " << fd << " got disconnected.";
+			return;
+		}
+	}
+	LOG_INFO << "Couldn't find client " << fd;
+}
+
+int	Server::run() {
+	LOG_INFO << "Server starting..";
+	_running = 1;
+	while(_running) {
+		int	ret = poll(&_pollFds[0], _pollFds.size(), -1);
+		if (ret < 0) {
+			// Probablement gerer les signaux ici, apparament poll peut s'arreter a cause d'un signal et c'est ok, dans ce cas faire continue;
+			LOG_ERR << "Poll critical failure.";
+			return (MEMORY_ERROR);
+		}
+		std::vector<int>	fdsToClose;
+		
+		DEBUG(LOG_DEBUG << "Got out of the poll";);
+
+		for(size_t i = 0; i < _pollFds.size(); i++) {
+			if (_pollFds[i].revents & POLLIN) {
+				if (_pollFds[i].fd == _serverFd) {
+					acceptNewClient();
+				} else {
+					handleClientData(_pollFds[i].fd, fdsToClose);
+				}
+			}
+		}
+
+		for(size_t i = 0; i < fdsToClose.size(); i++) {
+			disconnectClient(fdsToClose[i]);
+		}
+	}
 	return (SUCCESS);
 }

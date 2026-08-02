@@ -1,7 +1,7 @@
 #include "Client.hpp"
 
 Client::Client() : _fd(-1), _readBuffer("") {
-	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with fd `" << _fd << "` and empty buffer.";);
+	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with default fd `" << _fd << "` and empty buffer.";);
 }
 
 Client::Client(int fd) : _fd(fd), _readBuffer("") {
@@ -13,7 +13,7 @@ Client::Client(int fd, std::string buf) : _fd(fd), _readBuffer(buf) {
 }
 
 Client::Client(std::string buf) : _fd(-1), _readBuffer(buf) {
-	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with fd `" << _fd << "` and buffer `" << buf << "`.";);
+	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with default fd `" << _fd << "` and buffer `" << buf << "`.";);
 }
 
 Client::~Client() {

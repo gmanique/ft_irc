@@ -55,11 +55,5 @@ uint8_t	Client::extractCommand(std::string &command) {
 	return (1);
 }
 
-void	Client::executeCommand(Client &client, std::string &command)
-{
-	(void)client;
-	ParsedCommand parsed = Parser::parse(command);
-	
-}
 
 

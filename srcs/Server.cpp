@@ -129,6 +129,32 @@ void	Server::acceptNewClient() {
 	LOG_INFO << "New client connected on " << clientFd;
 }
 
+// void	Server::do_cap(Client &client, std::string &cmd) {
+// 	if (cmd == "CAP LS 302") {
+// 		if (send(client.getFd(), "CAP * LS :\r\n", 12, 0) < 0)
+// 		{
+// 			LOG_ERR << "Send failed";
+// 			return ;
+// 		}
+// 	}
+// }
+
+int	Server::executeCommand(Client &client, std::string &command)
+{
+	/*recupere 1e mot
+	cmd = first_word(command);
+	if (cmd == "CAP")
+		Server::do_cap(client, command);
+	else if (cmd == "PASS")
+		Server::checker_password(client, command);
+	else if (cmd == ...)
+		//blabla
+	*/
+	(void)client;
+	(void)command;
+	return (0);
+}
+
 
 // A faire
 void	Server::handleClientData(int clientFd, std::vector<int> &fdsToClose) {
@@ -155,7 +181,22 @@ void	Server::handleClientData(int clientFd, std::vector<int> &fdsToClose) {
 	while (client.extractCommand(command)) {
 		
 		DEBUG(LOG_INFO << "Command received from client " << clientFd << " : " << command;);
-		client.executeCommand(client, command);
+		// if (command == "CAP LS 302") {
+		// 	if (send(client.getFd(), "CAP * LS :\r\n", 12, 0) < 0)
+		// 	{
+		// 		LOG_ERR << "Send failed";
+		// 		return ;
+		// 	}
+		// }
+		// else if (command.substr(0, 4) == "PASS")
+		// {
+		// 	if (command == "PASS " + _password)
+		// 		;//cest good
+		// 	else
+		// 		;//mauvais mot de passe
+		// }
+		// else
+			executeCommand(client, command);
 	}
 }
 

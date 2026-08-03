@@ -6,7 +6,11 @@
 #    By: lupan <lupan@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/02/16 03:08:31 by gmanique          #+#    #+#              #
+<<<<<<< HEAD
 #    Updated: 2026/08/03 13:24:58 by lupan            ###   ########.fr        #
+=======
+#    Updated: 2026/08/03 13:00:34 by lupan            ###   ########.fr        #
+>>>>>>> 06bc7cb (feat: CAP LS)
 #                                                                              #
 # **************************************************************************** #
 
@@ -23,7 +27,11 @@ INC_DIRS := includes
 RM = rm -rf
 DEP_FLAGS := -MMD -MP
 SHELL := bash
+<<<<<<< HEAD
 BASE_SRC = main.cpp Server.cpp Client.cpp Logger.cpp Channel.cpp
+=======
+BASE_SRC = main.cpp Server.cpp Client.cpp Logger.cpp 
+>>>>>>> 06bc7cb (feat: CAP LS)
 
 VALGRIND = valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --track-fds=yes --trace-children=yes
 

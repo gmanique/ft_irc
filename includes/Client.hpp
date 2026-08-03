@@ -20,8 +20,6 @@ class Client {
 		void				appendBuffer(std::string buf);
 		
 		uint8_t				extractCommand(std::string &command);
-
-		void				executeCommand(Client &client, std::string &command);
 };
 
 

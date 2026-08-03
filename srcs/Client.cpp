@@ -1,6 +1,6 @@
 #include "Client.hpp"
 
-Client::Client() : _fd(-1), _readBuffer("") {
+Client::Client() : _fd(-1), _readBuffer(""), _isLogged(), _nickname(), _user() {
 	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with default fd `" << _fd << "` and empty buffer.";);
 }
 

@@ -44,18 +44,18 @@ void	Server::linkClientToChannel(Client *client, std::string &channel_name) {
 	c->addMember(client);
 }
 
-void	Server::unlinkClientFromChannel(Client *client, std::string &channel_name) {
-	Channel *c = getChannel(channel_name);
-	if (!c)
-		return ;
-	if (!c->hasMember(client->getFd()))
-		return ;
-	c->removeMember(client->getFd());
-	if (c->getMembers().empty()) {
-		deleteChannel(channel_name);
-		delete(c);
-	}
-}
+// void	Server::unlinkClientFromChannel(Client *client, std::string &channel_name) {
+// 	Channel *c = getChannel(channel_name);
+// 	if (!c)
+// 		return ;
+// 	if (!c->hasMember(client->getFd()))
+// 		return ;
+// 	c->removeMember(client->getFd());
+// 	if (c->getMembers().empty()) {
+// 		deleteChannel(channel_name);
+// 		delete(c);
+// 	}
+// }
 
 int	Server::init() {
 	_serverFd = socket(AF_INET, SOCK_STREAM, 0);

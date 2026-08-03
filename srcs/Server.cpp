@@ -276,6 +276,12 @@ int	Server::run() {
 	while(_running) {
 		int	ret = poll(&_pollFds[0], _pollFds.size(), -1);
 		if (ret < 0) {
+			/*
+			if (signal) {
+				_running = 0;
+				break;
+			}
+			*/
 			// Probablement gerer les signaux ici, apparament poll peut s'arreter a cause d'un signal et c'est ok, dans ce cas faire continue;
 			LOG_ERR << "Poll critical failure.";
 			return (MEMORY_ERROR);

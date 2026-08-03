@@ -36,6 +36,14 @@ const std::string &Client::getBuffer() const {
 	return (_readBuffer);
 }
 
+const std::string&		Client::getNickname() const {
+	return (_nickname);
+}
+
+void			Client::setNickname(std::string &nickname) {
+	_nickname = nickname;
+}
+
 void	Client::appendBuffer(std::string buf) {
 	_readBuffer += buf;
 }
@@ -54,6 +62,7 @@ uint8_t	Client::extractCommand(std::string &command) {
 	_readBuffer.erase(0, pos + 1);
 	return (1);
 }
+
 
 
 

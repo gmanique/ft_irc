@@ -21,9 +21,13 @@ class Server {
 		void								handleClientData(int clientFd, std::vector<int> &fdsToClose);
 		void								disconnectClient(int fd);
 		
-		int									executeCommand(Client &client, std::string &command);
+		int									executeCommand(Client &client, std::string &command, std::vector<int> &fdsToClose);
 		void								linkClientToChannel(Client *client, std::string &channel_name);
 		void								unlinkClientFromChannel(Client *client, std::string &channel_name);
+		void								do_cap(Client &client, std::string &cmd);
+		int									checker_password(Client &client, std::string &cmd, std::vector<int> &fdsToClose);
+		std::string							first_word(std::string &cmd);
+		int									nickname(Client &client, std::string &cmd);			 				
 
 	public:
 		Server();

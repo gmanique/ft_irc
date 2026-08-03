@@ -129,29 +129,81 @@ void	Server::acceptNewClient() {
 	LOG_INFO << "New client connected on " << clientFd;
 }
 
-// void	Server::do_cap(Client &client, std::string &cmd) {
-// 	if (cmd == "CAP LS 302") {
-// 		if (send(client.getFd(), "CAP * LS :\r\n", 12, 0) < 0)
-// 		{
-// 			LOG_ERR << "Send failed";
-// 			return ;
-// 		}
-// 	}
-// }
+void	Server::do_cap(Client &client, std::string &cmd) {
+	if (cmd == "CAP LS 302") {
+		LOG_DEBUG << "Sending to client " << client.getFd() << " : " << "CAP * LS :\\r\\n"; 
+		if (send(client.getFd(), "CAP * LS :\r\n", 12, 0) < 0)
+		{
+			LOG_ERR << "Send failed";
+			return ;
+		}
+	}
+}
 
-int	Server::executeCommand(Client &client, std::string &command)
+int	Server::checker_password(Client &client, std::string &cmd, std::vector<int> &fdsToClose)
 {
-	/*recupere 1e mot
-	cmd = first_word(command);
+	if (HASPASSWORD(client.getIsLogged())) {
+		LOG_INFO << "You already logged in";
+		return (0);
+	}
+	if (cmd == "PASS " + _password) {
+		LOG_INFO << "Password is correct";
+		SETHASPASSWORD(client.getIsLogged());
+	}
+	else
+	{
+		LOG_DEBUG << "Sending to client " << client.getFd() << " : " << ":127.0.0.1 464 * :Password incorrect";
+		fdsToClose.push_back(client.getFd());
+		if (send(client.getFd(), ":127.0.0.1 464 * :Password incorrect", 36, 0) < 0)
+		{
+			LOG_ERR << "Send failed";
+			return (-1);
+
+		}
+		LOG_INFO << "Password is incorrect";
+		return (-1);
+	}
+	return (0);
+}
+
+std::string Server::first_word(std::string &command)
+{
+	size_t pos = command.find(' ');
+	if (pos != std::string::npos)
+		LOG_PROTO << "Pas d'espace OK"; 
+	std::string cmd = command.substr(0, pos);
+	return (cmd);
+	
+}
+
+int Server::nickname(Client &client, std::string &cmd)
+{
+	std::size_t pos = cmd.find_last_not_of(" \r\n\t\f\v");
+	cmd = cmd.substr(0, pos + 1);
+
+	pos = cmd.find_last_of(" \r\n\t\f\v");
+	std::string nickname = cmd.substr(pos + 1);
+
+	client.setNickname(nickname);
+	LOG_USER_INFO(client.getNickname()) << "Nickname updated.";
+	SETHASNICKNAME(client.getIsLogged());
+	return (0);
+}
+
+int	Server::executeCommand(Client &client, std::string &command, std::vector<int> &fdsToClose)
+{
+	std::string cmd = first_word(command);
 	if (cmd == "CAP")
 		Server::do_cap(client, command);
 	else if (cmd == "PASS")
-		Server::checker_password(client, command);
-	else if (cmd == ...)
-		//blabla
-	*/
-	(void)client;
-	(void)command;
+	{
+		if (checker_password(client, command, fdsToClose) == -1)
+			return (-1);
+	}
+	else if (cmd == "NICK")
+	{
+		nickname(client, command);
+	}
 	return (0);
 }
 
@@ -196,7 +248,9 @@ void	Server::handleClientData(int clientFd, std::vector<int> &fdsToClose) {
 		// 		;//mauvais mot de passe
 		// }
 		// else
-			executeCommand(client, command);
+		if (executeCommand(client, command, fdsToClose) == -1)
+			return;
+			
 	}
 }
 

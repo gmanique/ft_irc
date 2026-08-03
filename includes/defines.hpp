@@ -14,4 +14,5 @@
 
 # define MAX_MSG_SIZE 512 //taille max dun message selon norme IRC (/r/n compris)
 
+
 #endif

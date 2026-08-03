@@ -31,14 +31,19 @@ int main(int ac, char **av)
 	}
 	int port = std::atoi(av[1]);
 	Server irc(port, av[2]);
-	int	init_res = irc.init();
-	if (init_res)
-		return (init_res);
-	
-	int	serv_res = irc.run();
-	if (serv_res)
-		return (serv_res);
-
+	try {
+		int	init_res = irc.init();
+		if (init_res)
+			return (init_res);
+		
+		int	serv_res = irc.run();
+		if (serv_res)
+			return (serv_res);
+	}
+	catch (const std::exception &e) {
+		LOG_ERR << "fatal error :" << e.what();
+		return (MEMORY_ERROR);
+	}
 	return (SUCCESS);
 }
 

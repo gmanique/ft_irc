@@ -23,7 +23,7 @@ INC_DIRS := includes
 RM = rm -rf
 DEP_FLAGS := -MMD -MP
 SHELL := bash
-BASE_SRC = main.cpp Server.cpp Client.cpp Logger.cpp
+BASE_SRC = main.cpp Server.cpp Client.cpp Logger.cpp Channel.cpp
 
 VALGRIND = valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --track-fds=yes --trace-children=yes
 

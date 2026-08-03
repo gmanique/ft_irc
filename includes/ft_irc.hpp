@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <set>
 #include <map>
 #include <cstring>
 #include <sstream>
@@ -25,6 +26,7 @@
 
 #include "Logger.hpp"
 #include "Client.hpp"
+#include "Channel.hpp"
 #include "Server.hpp"
 
 #endif

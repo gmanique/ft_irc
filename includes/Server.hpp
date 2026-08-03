@@ -27,7 +27,8 @@ class Server {
 		void								do_cap(Client &client, std::string &cmd);
 		int									checker_password(Client &client, std::string &cmd, std::vector<int> &fdsToClose);
 		std::string							first_word(std::string &cmd);
-		int									nickname(Client &client, std::string &cmd);			 				
+		int									nickname(Client &client, std::string &cmd);			 	
+		int 								user(Client &client, std::string &cmd);		
 
 	public:
 		Server();

@@ -190,6 +190,20 @@ int Server::nickname(Client &client, std::string &cmd)
 	return (0);
 }
 
+int Server::user(Client &client, std::string &cmd)
+{
+	std::size_t pos = cmd.find_last_not_of(" \r\n\t\f\v");
+	cmd = cmd.substr(0, pos + 1);
+
+	pos = cmd.find_last_of(" \r\n\t\f\v");
+	std::string nickname = cmd.substr(pos + 1);
+
+	client.setUser(nickname);
+	LOG_USER_INFO(client.getNickname()) << "User updated.";
+	SETHASUSER(client.getIsLogged());
+	return (0);
+}
+
 int	Server::executeCommand(Client &client, std::string &command, std::vector<int> &fdsToClose)
 {
 	std::string cmd = first_word(command);
@@ -203,6 +217,11 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 	else if (cmd == "NICK")
 	{
 		nickname(client, command);
+	}
+	// c pas sure a voir
+	else if (cmd == "USER")
+	{
+		user(client, cmd);
 	}
 	return (0);
 }
@@ -218,9 +237,9 @@ void	Server::handleClientData(int clientFd, std::vector<int> &fdsToClose) {
 	ssize_t	bytesRead = recv(clientFd, buffer, MAX_MSG_SIZE-1, 0);
 	if (bytesRead <= 0) {
 		if (bytesRead == 0) {
-			LOG_INFO << "Client on fd " << clientFd << " disconnected (EOF).";
+			LOG_USER_INFO(_clients[clientFd].getNickname()) << "Client on fd " << clientFd << " disconnected (EOF).";
 		} else {
-			LOG_ERR << "Could not read (recv) from fd " << clientFd;
+			LOG_USER_ERR(_clients[clientFd].getNickname()) << "Could not read (recv) from fd " << clientFd;
 		}
 		fdsToClose.push_back(clientFd);
 		return;
@@ -233,24 +252,8 @@ void	Server::handleClientData(int clientFd, std::vector<int> &fdsToClose) {
 	while (client.extractCommand(command)) {
 		
 		DEBUG(LOG_INFO << "Command received from client " << clientFd << " : " << command;);
-		// if (command == "CAP LS 302") {
-		// 	if (send(client.getFd(), "CAP * LS :\r\n", 12, 0) < 0)
-		// 	{
-		// 		LOG_ERR << "Send failed";
-		// 		return ;
-		// 	}
-		// }
-		// else if (command.substr(0, 4) == "PASS")
-		// {
-		// 	if (command == "PASS " + _password)
-		// 		;//cest good
-		// 	else
-		// 		;//mauvais mot de passe
-		// }
-		// else
 		if (executeCommand(client, command, fdsToClose) == -1)
 			return;
-			
 	}
 }
 

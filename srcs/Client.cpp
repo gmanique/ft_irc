@@ -44,6 +44,14 @@ void			Client::setNickname(std::string &nickname) {
 	_nickname = nickname;
 }
 
+const std::string&		Client::getUser() const {
+	return (_user);
+}
+
+void			Client::setUser(std::string &user) {
+	_user = user;
+}
+
 void	Client::appendBuffer(std::string buf) {
 	_readBuffer += buf;
 }

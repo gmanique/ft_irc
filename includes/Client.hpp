@@ -26,6 +26,7 @@ class Client {
 		std::string	_readBuffer;
 		uint8_t		_isLogged;
 		std::string _nickname;
+		std::string _user;
 	public:
 		Client();
 		Client(int fd);
@@ -40,6 +41,8 @@ class Client {
 		uint8_t				&getIsLogged() {return (_isLogged);}
 		void				setNickname(std::string &nickname);
 		const std::string 	&getNickname() const;
+		void				setUser(std::string &nickname);
+		const std::string 	&getUser() const;
 
 		uint8_t				extractCommand(std::string &command);
 };

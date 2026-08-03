@@ -221,7 +221,7 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 	// c pas sure a voir
 	else if (cmd == "USER")
 	{
-		user(client, cmd);
+		user(client, command);
 	}
 	return (0);
 }

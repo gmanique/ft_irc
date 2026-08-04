@@ -38,28 +38,36 @@ void			Server::deleteChannel(std::string &name) {
 	_channels.erase(name);
 }
 
-void	Server::linkClientToChannel(Client *client, std::string &channel_name) {
+// return : 0 = a rejoint, 1 : etait deja dedans
+int	Server::linkClientToChannel(Client *client, std::string &channel_name) {
 	Channel *c = getChannel(channel_name);
 	if (!c) {
 		LOG_INFO << "creating channel `" << channel_name << "`.";
 		c = new Channel(channel_name); // Deja gere par le try catch du main
 		addChannel(c);
+		LOG_USER_INFO(channel_name) << " Channel created.";
 	}
-	c->addMember(client);
+	if (!c->hasMember(client->getFd())) {
+		c->addMember(client);
+		LOG_USER_INFO(client->getNickname()) << " added to channel " << channel_name << ".";
+		return (0);
+	}
+	LOG_USER_INFO(client->getNickname()) << " already part of channel " << channel_name << ".";
+	return (1);
 }
 
-// void	Server::unlinkClientFromChannel(Client *client, std::string &channel_name) {
-// 	Channel *c = getChannel(channel_name);
-// 	if (!c)
-// 		return ;
-// 	if (!c->hasMember(client->getFd()))
-// 		return ;
-// 	c->removeMember(client->getFd());
-// 	if (c->getMembers().empty()) {
-// 		deleteChannel(channel_name);
-// 		delete(c);
-// 	}
-// }
+void	Server::unlinkClientFromChannel(Client *client, std::string &channel_name) {
+ 	Channel *c = getChannel(channel_name);
+ 	if (!c)
+ 		return ;
+ 	if (!c->hasMember(client->getFd()))
+ 		return ;
+ 	c->removeMember(client->getFd());
+ 	if (c->getMembers().empty()) {
+ 		deleteChannel(channel_name);
+ 		delete(c);
+	}
+}
 
 int	Server::init() {
 	_serverFd = socket(AF_INET, SOCK_STREAM, 0);
@@ -222,7 +230,10 @@ int	Server::do_join(Client &client, std::string &command, std::vector<int> &fdsT
 
 	LOG_USER_TRACE(client.getNickname()) << " trying to connect to channel : " << channel;
 	(void)fdsToClose;
-	linkClientToChannel(&client, channel);
+	if (!linkClientToChannel(&client, channel)) {
+		// renvoyer un message disant JOIN etc au client
+		;
+	}
 	return (0);
 }
 

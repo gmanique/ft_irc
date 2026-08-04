@@ -1,6 +1,6 @@
 #include "Client.hpp"
 
-Client::Client() : _fd(-1), _readBuffer(""), _isLogged(), _nickname(), _user() {
+Client::Client() : _fd(-1), _readBuffer(""), _isLogged(), _nickname(), _user((t_user){"", ""}) {
 	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with default fd `" << _fd << "` and empty buffer.";);
 }
 
@@ -44,11 +44,11 @@ void			Client::setNickname(std::string &nickname) {
 	_nickname = nickname;
 }
 
-const std::string&		Client::getUser() const {
+const t_user&		Client::getUser() const {
 	return (_user);
 }
 
-void			Client::setUser(std::string &user) {
+void			Client::setUser(t_user &user) {
 	_user = user;
 }
 

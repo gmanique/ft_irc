@@ -1,3 +1,245 @@
+
+#include "Channel.hpp"
+
+
+// Constructeurs
+Channel::Channel() : _name(""), _topic(""), _key(""), _userLimit(0), _inviteOnly(0), _topicOpOnly(0) {
+	DEBUG(LOG_DEBUG << "[CHANNEL] : Creation.";);
+}
+Channel::Channel(const std::string &name) : _name(name),  _topic(""), _key(""), _userLimit(0), _inviteOnly(0), _topicOpOnly(0) {
+	DEBUG(LOG_DEBUG << "[CHANNEL] : Creation with name `" << name << "`.";);
+
+}
+
+// Destructeur
+Channel::~Channel() {
+	DEBUG(LOG_DEBUG << "[CHANNEL] : Destruction.";);
+}
+
+// Getters
+const std::string&				Channel::getName() const {
+	return (_name);
+}
+const std::string&				Channel::getTopic() const {
+	return (_topic);
+}
+const std::string&				Channel::getKey() const {
+	return (_key);
+}
+const std::map<int, Client *>&	Channel::getMembers() const {
+	return (_members);
+}
+Client* Channel::getMember(int fd) const {
+	std::map<int, Client*>::const_iterator it = _members.find(fd);
+	if (it != _members.end())
+		return (it->second);
+	return (NULL);
+}
+
+// Setters
+void	Channel::setTopic(const std::string &topic) {
+	_topic = topic;
+}
+
+// Gestion des membres
+void	Channel::addMember(Client *client) {
+	if (!client)
+		return ;
+	//le 1e membre est celui qui cree le channel, il est donc operator
+	if (_members.empty()) {
+        addOperator(client->getFd());
+    }
+	_members.insert(std::make_pair(client->getFd(), client));
+}
+
+void	Channel::removeMember(int fd) {
+	_members.erase(fd);
+	_operators.erase(fd);
+}
+
+uint8_t	Channel::hasMember(int fd) const {
+	return (getMember(fd) != NULL);
+}
+
+
+//Gestion des operateurs
+void	Channel::addOperator(int fd) {
+	_operators.insert(fd);
+}
+void	Channel::removeOperator(int fd) {
+	_operators.erase(fd);
+}
+uint8_t	Channel::isOperator(int fd) const {
+	return (_operators.count(fd) > 0);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "Client.hpp"
+
+Client::Client() : _fd(-1), _readBuffer(""), _isLogged(0), _nickname(""), _user((t_user){"", ""}) {
+	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with default fd `" << _fd << "` and empty buffer.";);
+}
+
+Client::Client(int fd) : _fd(fd), _readBuffer(""), _isLogged(0), _nickname(""), _user((t_user){"", ""}) {
+	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with fd `" << _fd << "` and empty buffer.";);
+}
+
+Client::Client(int fd, std::string buf) : _fd(fd), _readBuffer(buf), _isLogged(0), _nickname(""), _user((t_user){"", ""}) {
+	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with fd `" << _fd << "` and buffer `" << buf << "`.";);
+}
+
+Client::Client(std::string buf) : _fd(-1), _readBuffer(buf), _isLogged(0), _nickname(""), _user((t_user){"", ""}) {
+	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with default fd `" << _fd << "` and buffer `" << buf << "`.";);
+}
+
+Client::~Client() {
+	DEBUG(LOG_TRACE << "[CLIENT] Destroying struct.";);
+}
+		
+void		Client::setFd(int fd) {
+	_fd = fd;
+}
+		
+void		Client::setBuffer(std::string buf) {
+	_readBuffer = buf;
+}
+
+int			Client::getFd() const {
+	return (_fd);
+}
+
+const std::string &Client::getBuffer() const {
+	return (_readBuffer);
+}
+
+const std::string&		Client::getNickname() const {
+	return (_nickname);
+}
+
+void			Client::setNickname(std::string &nickname) {
+	_nickname = nickname;
+}
+
+const t_user&		Client::getUser() const {
+	return (_user);
+}
+
+void			Client::setUser(t_user &user) {
+	_user = user;
+}
+
+void	Client::appendBuffer(std::string buf) {
+	_readBuffer += buf;
+}
+
+uint8_t	Client::extractCommand(std::string &command) {
+	size_t pos = _readBuffer.find("\n");
+	if (pos == std::string::npos)
+		return (0);
+
+	command = _readBuffer.substr(0, pos);
+
+	if (!command.empty() && command[command.size() - 1] == '\r') {
+		command.erase(command.size() - 1);
+	}
+
+	_readBuffer.erase(0, pos + 1);
+	return (1);
+}
+
+
+
+
+#include "Logger.hpp"
+
+Logger::Logger(LogLevel level, const std::string &user) : _stream(&std::cout) {
+	switch (level) {
+	# define X(name, color, label, stream) \
+		case LOG_LEVEL_##name: \
+			_stream = &stream; \
+			(*_stream) << color << label << COLOR_WHITE; \
+			if (!user.empty()) { \
+				(*_stream) << " [" << COLOR_CYAN << user << COLOR_WHITE << "]"; \
+			}	\
+			(*_stream) << " : "; \
+			break;
+        LOG_TYPES
+	# undef X
+	}
+}
+
+Logger::~Logger() {
+	(*_stream) << COLOR_RESET << std::endl;
+}
+
+
+#include "ft_irc.hpp"
+
+int ft_strlen(const char *s)
+{
+    const char *p = s;
+    if (!s) return 0;
+    while (*p++) ;
+    return (size_t)(p - s - 1);
+}
+
+
+uint8_t isValidPort(char *arg) {
+	const std::string str(arg);
+	if (str.length() > 5 || str.length() == 0)
+		return (0);
+    for (size_t i = 0; i < str.length(); ++i) {
+        if (!std::isdigit(str[i]))
+            return false;
+    }
+    int port = std::atoi(str.c_str());
+    return (port >= 1024 && port <= 65535);
+}
+
+int main(int ac, char **av)
+{
+	if (ac != 3 || !isValidPort(av[1]))
+	{
+		LOG_USAGE << "Ircserv needs 2 arguments, respectively the port (between 6665 and 6669) and the password.\nExample : `./ircserv 6667 mySafePassword`\n";
+		return (USAGE_ERROR);
+	}
+	int port = std::atoi(av[1]);
+	Server irc(port, av[2]);
+	try {
+		int	init_res = irc.init();
+		if (init_res)
+			return (init_res);
+		
+		int	serv_res = irc.run();
+		if (serv_res)
+			return (serv_res);
+	}
+	catch (const std::exception &e) {
+		LOG_ERR << "fatal error :" << e.what();
+		return (MEMORY_ERROR);
+	}
+	return (SUCCESS);
+}
+
+
 #include "Server.hpp"
 
 Server::Server() : _port(6667), _password(""), _serverFd(-1) {
@@ -233,19 +475,17 @@ std::string Server::first_word(std::string &command)
 	
 }
 
-int Server::nickname(Client &client, std::string &cmd, std::vector<std::string> &args)
+int Server::nickname(Client &client, std::string &cmd)
 {
-	// std::size_t pos = cmd.find_last_not_of(" \r\n\t\f\v");
-	// cmd = cmd.substr(0, pos + 1);
+	std::size_t pos = cmd.find_last_not_of(" \r\n\t\f\v");
+	cmd = cmd.substr(0, pos + 1);
 
-	// pos = cmd.find_last_of(" \r\n\t\f\v");
-	// std::string nickname = cmd.substr(pos + 1);
+	pos = cmd.find_last_of(" \r\n\t\f\v");
+	std::string nickname = cmd.substr(pos + 1);
 
-	std::string nickname = args[0];
 	client.setNickname(nickname);
 	LOG_USER_INFO(client.getNickname()) << "Nickname updated.";
 	SETHASNICKNAME(client.getIsLogged());
-	(void)cmd;
 	return (0);
 }
 
@@ -314,18 +554,17 @@ void	Server::send_to_channel(Client &client, std::vector<std::string> &args) {
 }
 
 void	Server::send_to_user(Client &client, std::vector<std::string> &args) {
-    if (args.size() < 2) return;
+	std::string destination_name = args[0];
+	int	fd = findUser(destination_name);
+	if (fd == -1) {
+		//send msg d'erreur user dont exist
 
-    std::string destination_name = args[0];
-    int fd = findUser(destination_name);
-    
-    if (fd == -1) {
-        LOG_USER_ERR(client.getNickname()) << "User " << destination_name << " does not exist."; 
-        return;
-    }
-    std::string msg = ":" + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1 PRIVMSG " + destination_name + " :" + args[1] + "\r\n";
-    
-    send(fd, msg.c_str(), msg.size(), 0);
+		LOG_USER_ERR(client.getNickname()) << "User " << destination_name << " does not exist."; 
+		return ;
+	}
+	std::string msg = ":" + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1 PRIVMSG" + " " + destination_name + " " + args[1];
+	// std::string msg = ":<nickname_expéditeur>!<username>@<hostname> PRIVMSG <destinataire> :<msg>";
+	send(fd, msg.c_str(), msg.size(), 0);
 }
 
 
@@ -358,7 +597,7 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 	}
 	else if (cmd == "NICK")
 	{
-		nickname(client, command, args);
+		nickname(client, command);
 	}
 	else if (cmd == "USER")
 	{

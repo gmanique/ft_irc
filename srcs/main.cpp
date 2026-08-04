@@ -8,8 +8,7 @@ int ft_strlen(const char *s)
     return (size_t)(p - s - 1);
 }
 
-// Potentiellement changer et verifier que c'est entre 6665 et 6669 (un port IRC)
-// Je sais pas encore si on doit prendre n'importe quel port ou juste port IRC
+
 uint8_t isValidPort(char *arg) {
 	const std::string str(arg);
 	if (str.length() > 5 || str.length() == 0)

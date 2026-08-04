@@ -1,18 +1,18 @@
 #include "Client.hpp"
 
-Client::Client() : _fd(-1), _readBuffer(""), _isLogged(), _nickname(), _user((t_user){"", ""}) {
+Client::Client() : _fd(-1), _readBuffer(""), _isLogged(0), _nickname(""), _user((t_user){"", ""}) {
 	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with default fd `" << _fd << "` and empty buffer.";);
 }
 
-Client::Client(int fd) : _fd(fd), _readBuffer("") {
+Client::Client(int fd) : _fd(fd), _readBuffer(""), _isLogged(0), _nickname(""), _user((t_user){"", ""}) {
 	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with fd `" << _fd << "` and empty buffer.";);
 }
 
-Client::Client(int fd, std::string buf) : _fd(fd), _readBuffer(buf) {
+Client::Client(int fd, std::string buf) : _fd(fd), _readBuffer(buf), _isLogged(0), _nickname(""), _user((t_user){"", ""}) {
 	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with fd `" << _fd << "` and buffer `" << buf << "`.";);
 }
 
-Client::Client(std::string buf) : _fd(-1), _readBuffer(buf) {
+Client::Client(std::string buf) : _fd(-1), _readBuffer(buf), _isLogged(0), _nickname(""), _user((t_user){"", ""}) {
 	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with default fd `" << _fd << "` and buffer `" << buf << "`.";);
 }
 

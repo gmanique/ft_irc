@@ -298,7 +298,7 @@ int	Server::do_join(Client &client, std::string &command, std::vector<int> &fdsT
 int	Server::executeCommand(Client &client, std::string &command, std::vector<int> &fdsToClose)
 {
 
-	std::string cmd;
+	std::string cmd = "";
 	std::vector<std::string> args;
 	parseCommand(command, cmd, args);
 	if (cmd == "CAP")

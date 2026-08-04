@@ -7,18 +7,18 @@
 # define NICKNAME_FLAG 	(1<<1)
 # define USER_FLAG 		(1<<2)
 
-# define HASPASSWORD(val) (val & PASSWORD_FLAG)
+# define HASPASSWORD(val) ((val & PASSWORD_FLAG) > 0)
 # define SETHASPASSWORD(val) (val |= PASSWORD_FLAG)
 
-# define HASNICKNAME(val) (val & NICKNAME_FLAG)
+# define HASNICKNAME(val) ((val & NICKNAME_FLAG) > 0)
 # define SETHASNICKNAME(val) (val |= NICKNAME_FLAG)
 
 
-# define HASUSER(val) (val & USER_FLAG)
+# define HASUSER(val) ((val & USER_FLAG) > 0)
 # define SETHASUSER(val) (val |= USER_FLAG)
 
-# define ISLOGGED(val) (val == 7)
-// # define ISLOGGED(val) (HASUSER(val) && HASNICKNAME(val) && HASPASSWORD(val))
+// # define ISLOGGED(val) (val == 7)
+# define ISLOGGED(val) (HASUSER(val) && HASNICKNAME(val) && HASPASSWORD(val))
 
 class Client {
 	private:

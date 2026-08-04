@@ -24,7 +24,11 @@ const std::string	&Server::getPassword() const {
 	return (_password);
 }
 Channel				*Server::getChannel(std::string &name) const {
-	return (_channels.at(name));
+	try {
+		return (_channels.at(name));
+	} catch (const std::exception &e) {
+		return (NULL);
+	}
 }
 void			Server::addChannel(Channel *channel) {
 	std::string name = channel->getName();
@@ -204,6 +208,24 @@ int Server::user(Client &client, std::string &cmd)
 	return (0);
 }
 
+int	Server::do_join(Client &client, std::string &command, std::vector<int> &fdsToClose) {
+	if (!ISLOGGED(client.getIsLogged())) {
+		LOG_USER_ERR(client.getNickname()) << "Client must be fully logged in before connecting to a channel.";
+		DEBUG(LOG_DEBUG << "\nHasPassword : " << HASPASSWORD(client.getIsLogged())						 << "\nHasNickname : " << HASNICKNAME(client.getIsLogged())						  << "\nHasUser : " << HASUSER(client.getIsLogged()););
+		return (USAGE_ERROR);
+	}
+	std::size_t pos = command.find_last_not_of(" \r\n\t\f\v");
+	command = command.substr(0, pos + 1);
+
+	pos = command.find_last_of(" \r\n\t\f\v");
+	std::string channel = command.substr(pos + 1);
+
+	LOG_USER_TRACE(client.getNickname()) << " trying to connect to channel : " << channel;
+	(void)fdsToClose;
+	linkClientToChannel(&client, channel);
+	return (0);
+}
+
 int	Server::executeCommand(Client &client, std::string &command, std::vector<int> &fdsToClose)
 {
 	std::string cmd = first_word(command);
@@ -222,6 +244,9 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 	else if (cmd == "USER")
 	{
 		user(client, command);
+	}
+	else if (cmd == "JOIN") {
+		do_join(client, command, fdsToClose);
 	}
 	return (0);
 }
@@ -251,7 +276,7 @@ void	Server::handleClientData(int clientFd, std::vector<int> &fdsToClose) {
 	std::string command;
 	while (client.extractCommand(command)) {
 		
-		DEBUG(LOG_INFO << "Command received from client " << clientFd << " : " << command;);
+		DEBUG(LOG_USER_INFO(client.getNickname()) << "Command received from client " << clientFd << " : " << command;);
 		if (executeCommand(client, command, fdsToClose) == -1)
 			return;
 	}

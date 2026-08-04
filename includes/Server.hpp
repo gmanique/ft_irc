@@ -30,6 +30,8 @@ class Server {
 		int									nickname(Client &client, std::string &cmd);			 	
 		int 								user(Client &client, std::string &cmd);		
 
+		int									do_join(Client &client, std::string &command, std::vector<int> &fdsToClose);
+	
 	public:
 		Server();
 		Server(int port, const std::string& password);

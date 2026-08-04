@@ -1,18 +1,18 @@
 #include "Client.hpp"
 
-Client::Client() : _fd(-1), _readBuffer("") {
+Client::Client() : _fd(-1), _readBuffer(""), _isLogged(0), _nickname(""), _user((t_user){"", ""}) {
 	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with default fd `" << _fd << "` and empty buffer.";);
 }
 
-Client::Client(int fd) : _fd(fd), _readBuffer("") {
+Client::Client(int fd) : _fd(fd), _readBuffer(""), _isLogged(0), _nickname(""), _user((t_user){"", ""}) {
 	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with fd `" << _fd << "` and empty buffer.";);
 }
 
-Client::Client(int fd, std::string buf) : _fd(fd), _readBuffer(buf) {
+Client::Client(int fd, std::string buf) : _fd(fd), _readBuffer(buf), _isLogged(0), _nickname(""), _user((t_user){"", ""}) {
 	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with fd `" << _fd << "` and buffer `" << buf << "`.";);
 }
 
-Client::Client(std::string buf) : _fd(-1), _readBuffer(buf) {
+Client::Client(std::string buf) : _fd(-1), _readBuffer(buf), _isLogged(0), _nickname(""), _user((t_user){"", ""}) {
 	DEBUG(LOG_TRACE << "[CLIENT] Creating struct with default fd `" << _fd << "` and buffer `" << buf << "`.";);
 }
 
@@ -36,6 +36,22 @@ const std::string &Client::getBuffer() const {
 	return (_readBuffer);
 }
 
+const std::string&		Client::getNickname() const {
+	return (_nickname);
+}
+
+void			Client::setNickname(std::string &nickname) {
+	_nickname = nickname;
+}
+
+const t_user&		Client::getUser() const {
+	return (_user);
+}
+
+void			Client::setUser(t_user &user) {
+	_user = user;
+}
+
 void	Client::appendBuffer(std::string buf) {
 	_readBuffer += buf;
 }
@@ -54,5 +70,7 @@ uint8_t	Client::extractCommand(std::string &command) {
 	_readBuffer.erase(0, pos + 1);
 	return (1);
 }
+
+
 
 

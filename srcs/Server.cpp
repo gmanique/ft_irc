@@ -173,14 +173,25 @@ void	Server::do_cap(Client &client, std::string &cmd) {
 		}
 	}
 }
+void	Server::ping_pong(Client &client, std::string &cmd, std::vector<std::string> &args) {
+	std::string rep = "PONG :127.0.0.1";
+	send(client.getFd(), rep.c_str(), rep.size(), 0);
+	LOG_DEBUG << "Awnsered the ping with pong !";
+	(void)cmd;
+	(void)args;
+}
 
-int	Server::checker_password(Client &client, std::string &cmd, std::vector<int> &fdsToClose)
+int	Server::checker_password(Client &client, std::string &cmd, std::vector<int> &fdsToClose, std::vector<std::string> &args)
 {
 	if (HASPASSWORD(client.getIsLogged())) {
 		LOG_INFO << "You already logged in";
 		return (0);
 	}
-	if (cmd == "PASS " + _password) {
+	if (args.size() != 1)
+		return (-1);//probleme
+	(void)cmd;
+	
+	if (args[0] == _password) {
 		LOG_INFO << "Password is correct";
 		SETHASPASSWORD(client.getIsLogged());
 	}
@@ -192,7 +203,6 @@ int	Server::checker_password(Client &client, std::string &cmd, std::vector<int> 
 		{
 			LOG_ERR << "Send failed";
 			return (-1);
-
 		}
 		LOG_INFO << "Password is incorrect";
 		return (-1);
@@ -282,6 +292,7 @@ int	Server::do_join(Client &client, std::string &command, std::vector<int> &fdsT
 	return (0);
 }
 
+
 int	Server::executeCommand(Client &client, std::string &command, std::vector<int> &fdsToClose)
 {
 
@@ -292,7 +303,7 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 		Server::do_cap(client, command);
 	else if (cmd == "PASS")
 	{
-		if (checker_password(client, command, fdsToClose) == -1)
+		if (checker_password(client, command, fdsToClose, args) == -1)
 			return (-1);
 	}
 	else if (cmd == "NICK")
@@ -307,6 +318,8 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 	else if (cmd == "JOIN") {
 		do_join(client, command, fdsToClose);
 	}
+	else if (cmd == "PING")
+		ping_pong(client, cmd, args);
 	return (0);
 }
 

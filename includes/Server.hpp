@@ -28,7 +28,7 @@ class Server {
 		int									checker_password(Client &client, std::string &cmd, std::vector<int> &fdsToClose);
 		std::string							first_word(std::string &cmd);
 		int									nickname(Client &client, std::string &cmd);			 	
-		int 								user(Client &client, std::string &cmd);		
+		int 								user(Client &client, std::string &cmd, std::vector<std::string> &args);		
 
 		int									do_join(Client &client, std::string &command, std::vector<int> &fdsToClose);
 	

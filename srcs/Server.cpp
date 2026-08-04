@@ -222,17 +222,16 @@ int Server::nickname(Client &client, std::string &cmd)
 	return (0);
 }
 
-int Server::user(Client &client, std::string &cmd)
+int Server::user(Client &client, std::string &cmd, std::vector<std::string> &args)
 {
+	/*
 	// on tronque l'input
 	std::size_t pos = cmd.find_last_not_of(" \r\n\t\f\v");
 	cmd = cmd.substr(0, pos + 1);
 	pos = cmd.find_first_not_of(" \r\n\t\f\v");
 	cmd = cmd.substr(pos);
-
-	std::string command;
-	std::vector<std::string> args;
-	parseCommand(cmd, command, args);
+	*/
+	(void)cmd;
 	if (ISLOGGED(client.getIsLogged())) {
 		std::string rep = "462 " + client.getNickname() + " :Unauthorized command (already registered)";
 		send(client.getFd(), rep.c_str(), rep.size(), 0);
@@ -283,7 +282,10 @@ int	Server::do_join(Client &client, std::string &command, std::vector<int> &fdsT
 
 int	Server::executeCommand(Client &client, std::string &command, std::vector<int> &fdsToClose)
 {
-	std::string cmd = first_word(command);
+
+	std::string cmd;
+	std::vector<std::string> args;
+	parseCommand(command, cmd, args);
 	if (cmd == "CAP")
 		Server::do_cap(client, command);
 	else if (cmd == "PASS")
@@ -298,7 +300,7 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 	// c pas sure a voir
 	else if (cmd == "USER")
 	{
-		user(client, command);
+		user(client, command, args);
 	}
 	else if (cmd == "JOIN") {
 		do_join(client, command, fdsToClose);

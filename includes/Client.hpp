@@ -20,13 +20,18 @@
 // # define ISLOGGED(val) (val == 7)
 # define ISLOGGED(val) (HASUSER(val) && HASNICKNAME(val) && HASPASSWORD(val))
 
+typedef struct s_user {
+	std::string username;
+	std::string realname;
+}	t_user;
+
 class Client {
 	private:
 		int			_fd;
 		std::string	_readBuffer;
 		uint8_t		_isLogged;
 		std::string _nickname;
-		std::string _user;
+		t_user		_user;
 	public:
 		Client();
 		Client(int fd);
@@ -41,8 +46,8 @@ class Client {
 		uint8_t				&getIsLogged() {return (_isLogged);}
 		void				setNickname(std::string &nickname);
 		const std::string 	&getNickname() const;
-		void				setUser(std::string &nickname);
-		const std::string 	&getUser() const;
+		void				setUser(t_user &user);
+		const t_user	 	&getUser() const;
 
 		uint8_t				extractCommand(std::string &command);
 };

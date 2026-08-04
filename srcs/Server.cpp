@@ -141,6 +141,26 @@ void	Server::acceptNewClient() {
 	LOG_INFO << "New client connected on " << clientFd;
 }
 
+void parseCommand(const std::string &line, std::string &command, std::vector<std::string> &args) {
+    std::stringstream ss(line);
+    std::string token;
+
+    if (!(ss >> command))
+        return;
+
+    while (ss >> token) {
+        if (token[0] == ':') {
+            std::string trailing;
+            std::getline(ss, trailing);
+            
+            std::string fullTrailing = token.substr(1) + trailing;
+            args.push_back(fullTrailing);
+            break;
+        }
+        args.push_back(token);
+    }
+}
+
 void	Server::do_cap(Client &client, std::string &cmd) {
 	if (cmd == "CAP LS 302") {
 		LOG_DEBUG << "Sending to client " << client.getFd() << " : " << "CAP * LS :\\r\\n"; 
@@ -204,17 +224,41 @@ int Server::nickname(Client &client, std::string &cmd)
 
 int Server::user(Client &client, std::string &cmd)
 {
+	// on tronque l'input
 	std::size_t pos = cmd.find_last_not_of(" \r\n\t\f\v");
 	cmd = cmd.substr(0, pos + 1);
+	pos = cmd.find_first_not_of(" \r\n\t\f\v");
+	cmd = cmd.substr(pos);
 
-	pos = cmd.find_last_of(" \r\n\t\f\v");
-	std::string nickname = cmd.substr(pos + 1);
+	std::string command;
+	std::vector<std::string> args;
+	parseCommand(cmd, command, args);
+	if (ISLOGGED(client.getIsLogged())) {
+		std::string rep = "462 " + client.getNickname() + " :Unauthorized command (already registered)";
+		send(client.getFd(), rep.c_str(), rep.size(), 0);
+        LOG_USER_ERR(client.getNickname()) << "Tried to register twice.";
+		return (-1);
+    }
+	if  (args.size() != 4) {
+		std::string rep = "461 " + (client.getNickname().empty() ? "*" : client.getNickname()) + " USER :Not enough parameters";
+		send(client.getFd(), rep.c_str(), rep.size(), 0);
+        return (-1);
+    }
 
-	client.setUser(nickname);
+
+	t_user	user;
+	user.username = args[0];
+	user.realname = args[3]; // faut retirer le ':', jai la flemme la
+	client.setUser(user);
+
 	LOG_USER_INFO(client.getNickname()) << "User updated.";
 	SETHASUSER(client.getIsLogged());
+	std::string rep = ":server_name 001 " + client.getNickname() + " :Welcome to the Localnet IRC Network " + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1\r\n";
+	send(client.getFd(), rep.c_str(), rep.size(), 0);
+	// envoyer la reponse valide au client je suppose
 	return (0);
 }
+
 
 int	Server::do_join(Client &client, std::string &command, std::vector<int> &fdsToClose) {
 	if (!ISLOGGED(client.getIsLogged())) {

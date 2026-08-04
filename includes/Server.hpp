@@ -31,6 +31,8 @@ class Server {
 		int 								user(Client &client, std::string &cmd, std::vector<std::string> &args);		
 
 		int									do_join(Client &client, std::string &command, std::vector<int> &fdsToClose);
+		int									handle_signal();
+		static void							handler_sig(int signum);
 	
 	public:
 		Server();

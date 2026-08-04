@@ -1,5 +1,7 @@
 #include "Server.hpp"
 
+volatile sig_atomic_t g_stop = 0;
+
 Server::Server() : _port(6667), _password(""), _serverFd(-1) {
 	DEBUG(LOG_TRACE << "[SERVER] Creating struct with port `" << _port << "` and password `" << _password << "`.";);
 }
@@ -352,19 +354,39 @@ void	Server::disconnectClient(int fd) {
 	LOG_INFO << "Couldn't find client " << fd;
 }
 
+void Server::handler_sig(int)
+{
+	g_stop = 1;
+}
+
+int Server::handle_signal()
+{
+	struct sigaction sa;
+
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sa.sa_handler = handler_sig;
+	if (sigaction(SIGINT, &sa, NULL) == -1)
+		return (MEMORY_ERROR);
+	if (sigaction(SIGQUIT, &sa, NULL) == -1)
+		return (MEMORY_ERROR);
+	return (0);
+}
+
 int	Server::run() {
 	LOG_INFO << "Server starting..";
+
+	handle_signal();
 	_running = 1;
+
 	while(_running) {
+		if (g_stop)
+			break;
 		int	ret = poll(&_pollFds[0], _pollFds.size(), -1);
-		if (ret < 0) {
-			/*
-			if (signal) {
-				_running = 0;
-				break;
-			}
-			*/
-			// Probablement gerer les signaux ici, apparament poll peut s'arreter a cause d'un signal et c'est ok, dans ce cas faire continue;
+		if (ret < 0) {			
+			if (errno == EINTR)
+				continue;
+			
 			LOG_ERR << "Poll critical failure.";
 			return (MEMORY_ERROR);
 		}

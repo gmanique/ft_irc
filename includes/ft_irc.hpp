@@ -21,6 +21,7 @@
 
 #include <cerrno>
 #include <cstdlib>
+#include <csignal>
 
 #include "defines.hpp"
 

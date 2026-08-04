@@ -1,7 +1,5 @@
 #include "Server.hpp"
 
-volatile sig_atomic_t g_stop = 0;
-
 Server::Server() : _port(6667), _password(""), _serverFd(-1) {
 	DEBUG(LOG_TRACE << "[SERVER] Creating struct with port `" << _port << "` and password `" << _password << "`.";);
 }
@@ -173,10 +171,14 @@ void	Server::do_cap(Client &client, std::string &cmd) {
 		}
 	}
 }
+
 void	Server::ping_pong(Client &client, std::string &cmd, std::vector<std::string> &args) {
 	std::string rep = "PONG :127.0.0.1";
-	send(client.getFd(), rep.c_str(), rep.size(), 0);
-	LOG_DEBUG << "Awnsered the ping with pong !";
+	if (send(client.getFd(), rep.c_str(), rep.size(), 0) < 0) {
+		LOG_ERR << "Send failed";
+		return;
+	}
+	DEBUG(LOG_DEBUG << "Answered the ping with pong !";);
 	(void)cmd;
 	(void)args;
 }
@@ -369,7 +371,6 @@ void	Server::disconnectClient(int fd) {
 
 void Server::handler_sig(int)
 {
-	g_stop = 1;
 }
 
 int Server::handle_signal()
@@ -393,20 +394,18 @@ int	Server::run() {
 	_running = 1;
 
 	while(_running) {
-		if (g_stop)
-			break;
 		int	ret = poll(&_pollFds[0], _pollFds.size(), -1);
 		if (ret < 0) {			
-			if (errno == EINTR)
+			if (errno == EINTR) {
+				LOG_INFO << "Poll interrupted by a signal, turning server off..";
+				_running = 0;
 				continue;
-			
+			}
 			LOG_ERR << "Poll critical failure.";
 			return (MEMORY_ERROR);
 		}
 		std::vector<int>	fdsToClose;
 		
-		DEBUG(LOG_DEBUG << "Got out of the poll";);
-
 		for(size_t i = 0; i < _pollFds.size(); i++) {
 			if (_pollFds[i].revents & POLLIN) {
 				if (_pollFds[i].fd == _serverFd) {

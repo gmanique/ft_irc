@@ -257,6 +257,19 @@ int Server::nickname(Client &client, std::vector<std::string> &args)
 	return (0);
 }
 
+int Server::quit(Client &client, std::string &cmd, std::vector<int> &fdsToClose)
+{
+	std::size_t pos = cmd.find_last_not_of(" \r\n\t\f\v");
+	cmd = cmd.substr(0, pos + 1);
+
+	pos = cmd.find_last_of(" \r\n\t\f\v");
+	std::string reason = cmd.substr(pos + 1);
+
+	fdsToClose.push_back(client.getFd());
+	LOG_USER_INFO(client.getNickname()) << "Disconnected because " << reason;
+	return (0);
+}
+
 int Server::user(Client &client, std::vector<std::string> &args)
 {
 	
@@ -411,6 +424,8 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 	else if (cmd == "PRIVMSG") {
 		do_msg(client, args);
 	}
+	else if (cmd == "QUIT")
+		quit(client, command, fdsToClose);
 	return (0);
 }
 

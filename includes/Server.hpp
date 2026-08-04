@@ -39,7 +39,7 @@ class Server {
 		int									do_join(Client &client, std::vector<int> &fdsToClose, std::vector<std::string> &args);
 		void								ping_pong(Client &client, std::vector<std::string> &args);
 		void								do_msg(Client &client, std::vector<std::string> &args);
-	
+		int									quit(Client &client, std::string &cmd, std::vector<int> &fdsToClose);
 	public:
 		Server();
 		Server(int port, const std::string& password);

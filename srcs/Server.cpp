@@ -184,7 +184,7 @@ void	Server::do_cap(Client &client, std::vector<std::string> &args) {
 }
 
 void	Server::ping_pong(Client &client, std::vector<std::string> &args) {
-	std::string rep = "PONG :127.0.0.1";
+	std::string rep = "PONG :127.0.0.1\r\n";
 	if (send(client.getFd(), rep.c_str(), rep.size(), 0) < 0) {
 		LOG_ERR << "Send failed";
 		return;
@@ -214,7 +214,7 @@ int	Server::checker_password(Client &client,std::vector<int> &fdsToClose, std::v
 	{
 		LOG_DEBUG << "Sending to client " << client.getFd() << " : " << ":127.0.0.1 464 * :Password incorrect";
 		fdsToClose.push_back(client.getFd());
-		if (send(client.getFd(), ":127.0.0.1 464 * :Password incorrect", 36, 0) < 0)
+		if (send(client.getFd(), ":127.0.0.1 464 * :Password incorrect\r\n", 38, 0) < 0)
 		{
 			LOG_ERR << "Send failed";
 			return (-1);
@@ -313,32 +313,55 @@ int	Server::do_join(Client &client, std::vector<int> &fdsToClose, std::vector<st
 	return (0);
 }
 
-void	Server::send_to_channel(Client &client, std::vector<std::string> &args) {
-	// std::string channel_name = args[0];
-	// Channel *c = getChannel(channel_name);
-	// if (!c) {
-	// 	//send msg d'erreur channel dont exist
-
-	// 	LOG_USER_ERR(client.getNickname()) << "Channel " << channel_name << " does not exist."; 
-	// 	return;
-	// }
-	(void)client;
-	(void)args;
+int	Server::send_to_channel(Client &client, std::vector<std::string> &args) {
+	if (args.size() < 2) {
+		// il faut le nom de channel et le message
+		return (-1);
+	}
+	std::string channel_name = args[0];
+	Channel *c = getChannel(channel_name);
+	if (!c) {
+		// send msg d'erreur channel dont exist
+		LOG_USER_ERR(client.getNickname()) << "Channel " << channel_name << " does not exist."; 
+		return (-1);
+	}
+	int	sender = client.getFd();
+	std::string message = "";
+	for(size_t i = 1; i < args.size(); i++) {
+		message += args[i];
+		if (i < args.size()-1)
+			message += " ";
+	}
+	std::map<int, Client *> clients = c->getMembers();
+	for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
+		int clientFd = it->first;
+		if (clientFd == sender)
+			continue;
+	
+		std::string msg = ":" + client.getNickname() + "!" + client.getUser().username \
+			+ "@127.0.0.1 PRIVMSG " + channel_name + " :" + message + "\r\n";
+		send(clientFd, msg.c_str(), msg.size(), 0);
+	}
+	return (0);
 }
 
-void	Server::send_to_user(Client &client, std::vector<std::string> &args) {
-    if (args.size() < 2) return;
+int	Server::send_to_user(Client &client, std::vector<std::string> &args) {
+    if (args.size() < 2) {
+		// il faut le nom de user et le message
+		return (-1);
+	}
 
     std::string destination_name = args[0];
     int fd = findUser(destination_name);
     
     if (fd == -1) {
         LOG_USER_ERR(client.getNickname()) << "User " << destination_name << " does not exist."; 
-        return;
+        return (-1);
     }
     std::string msg = ":" + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1 PRIVMSG " + destination_name + " :" + args[1] + "\r\n";
     
     send(fd, msg.c_str(), msg.size(), 0);
+	return (0);
 }
 
 

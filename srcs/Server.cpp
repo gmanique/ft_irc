@@ -269,7 +269,7 @@ int Server::quit(Client &client, std::vector<int> &fdsToClose, std::vector<std::
 		for(size_t i = 0; i < args.size(); i++) {
 			reason += args[i];
 			if (i < args.size() - 1)
-			reason += " ";
+				reason += " ";
 		}
 		fdsToClose.push_back(client.getFd());
 		LOG_USER_INFO(client.getNickname()) << "Disconnected because " << reason;

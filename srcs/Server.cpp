@@ -257,20 +257,23 @@ int Server::nickname(Client &client, std::vector<std::string> &args)
 	return (0);
 }
 
-int Server::quit(Client &client, std::string &cmd, std::vector<int> &fdsToClose)
+int Server::quit(Client &client, std::vector<int> &fdsToClose, std::vector<std::string> &args)
 {
-	std::size_t first = cmd.find_first_of("abcdefghijklmnopqrstuvwxyz");
-	if (first == std::string::npos)
-	{
+	if (args.size() == 0) {
 		LOG_USER_INFO(client.getNickname()) << "Disconnected";
 		fdsToClose.push_back(client.getFd());
 		return (-1);
 	}
-	std::size_t pos = cmd.find_last_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
-	std::string reason = cmd.substr(first, pos + 1);
-
-	fdsToClose.push_back(client.getFd());
-	LOG_USER_INFO(client.getNickname()) << "Disconnected because " << reason;
+	else {
+		std::string reason = "";
+		for(size_t i = 0; i < args.size(); i++) {
+			reason += args[i];
+			if (i < args.size() - 1)
+			reason += " ";
+		}
+		fdsToClose.push_back(client.getFd());
+		LOG_USER_INFO(client.getNickname()) << "Disconnected because " << reason;
+	}
 	return (0);
 }
 
@@ -429,7 +432,7 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 		do_msg(client, args);
 	}
 	else if (cmd == "QUIT")
-		quit(client, command, fdsToClose);
+		quit(client, fdsToClose, args);
 	return (0);
 }
 

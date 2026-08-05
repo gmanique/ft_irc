@@ -25,8 +25,8 @@ class Server {
 		void								unlinkClientFromChannel(Client *client, std::string &channel_name);
 		
 		// Pour PRIVMSG
-		void								send_to_channel(Client &client, std::vector<std::string> &args);
-		void								send_to_user(Client &client, std::vector<std::string> &args);
+		int									send_to_channel(Client &client, std::vector<std::string> &args);
+		int									send_to_user(Client &client, std::vector<std::string> &args);
 		
 		int									executeCommand(Client &client, std::string &command, std::vector<int> &fdsToClose);
 		

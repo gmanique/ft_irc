@@ -260,7 +260,12 @@ int Server::nickname(Client &client, std::vector<std::string> &args)
 int Server::quit(Client &client, std::string &cmd, std::vector<int> &fdsToClose)
 {
 	std::size_t first = cmd.find_first_of("abcdefghijklmnopqrstuvwxyz");
-
+	if (first == std::string::npos)
+	{
+		LOG_USER_INFO(client.getNickname()) << "Disconnected";
+		fdsToClose.push_back(client.getFd());
+		return (-1);
+	}
 	std::size_t pos = cmd.find_last_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
 	std::string reason = cmd.substr(first, pos + 1);
 

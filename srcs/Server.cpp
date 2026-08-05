@@ -262,7 +262,7 @@ int Server::quit(Client &client, std::vector<int> &fdsToClose, std::vector<std::
 	if (args.size() == 0) {
 		LOG_USER_INFO(client.getNickname()) << "Disconnected";
 		fdsToClose.push_back(client.getFd());
-		return (-1);
+		return (0);
 	}
 	else {
 		std::string reason = "";

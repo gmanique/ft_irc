@@ -205,6 +205,10 @@ int	Server::checker_password(Client &client,std::vector<int> &fdsToClose, std::v
 	if (args[0] == _password) {
 		LOG_INFO << "Password is correct";
 		SETHASPASSWORD(client.getIsLogged());
+		if (ISLOGGED(client.getIsLogged())) {
+			std::string rep = ":server_name 001 " + client.getNickname() + " :Welcome to the Localnet IRC Network " + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1\r\n";
+			send(client.getFd(), rep.c_str(), rep.size(), 0);
+		}
 	}
 	else
 	{
@@ -220,16 +224,6 @@ int	Server::checker_password(Client &client,std::vector<int> &fdsToClose, std::v
 	}
 	return (0);
 }
-
-// std::string Server::first_word(std::string &command)
-// {
-// 	size_t pos = command.find(' ');
-// 	if (pos != std::string::npos)
-// 		LOG_PROTO << "Pas d'espace OK"; 
-// 	std::string cmd = command.substr(0, pos);
-// 	return (cmd);
-	
-// }
 
 int Server::nickname(Client &client, std::vector<std::string> &args)
 {
@@ -247,6 +241,10 @@ int Server::nickname(Client &client, std::vector<std::string> &args)
 		client.setNickname(nickname);
 		LOG_USER_INFO(client.getNickname()) << "Nickname updated.";
 		SETHASNICKNAME(client.getIsLogged());
+		if (ISLOGGED(client.getIsLogged())) {
+			std::string rep = ":server_name 001 " + client.getNickname() + " :Welcome to the Localnet IRC Network " + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1\r\n";
+			send(client.getFd(), rep.c_str(), rep.size(), 0);
+		}
 	}
 	else {
 		std::string old_nick = client.getNickname();
@@ -254,7 +252,6 @@ int Server::nickname(Client &client, std::vector<std::string> &args)
 		client.setNickname(nickname);
 		LOG_USER_INFO(client.getNickname()) << "Nickname updated.";
 		msg = ":" + old_nick + "!" + client.getUser().username + "@127.0.0.1 NICK :" + nickname + "\r\n";
-		// msg = ":<ancien_pseudo>!<username>@<host> NICK :<nouveau_pseudo>\r\n"
 		send(client.getFd(), msg.c_str(), msg.size(), 0);
 	}
 	return (0);
@@ -283,8 +280,10 @@ int Server::user(Client &client, std::vector<std::string> &args)
 
 	LOG_USER_INFO(client.getNickname()) << "User updated.";
 	SETHASUSER(client.getIsLogged());
-	std::string rep = ":server_name 001 " + client.getNickname() + " :Welcome to the Localnet IRC Network " + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1\r\n";
-	send(client.getFd(), rep.c_str(), rep.size(), 0);
+	if (ISLOGGED(client.getIsLogged())) {
+		std::string rep = ":server_name 001 " + client.getNickname() + " :Welcome to the Localnet IRC Network " + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1\r\n";
+		send(client.getFd(), rep.c_str(), rep.size(), 0);
+	}
 	return (0);
 }
 

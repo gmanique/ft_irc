@@ -397,43 +397,47 @@ void	Server::do_msg(Client &client, std::vector<std::string> &args) {
 	}
 }
 
-void	Server::do_mode(Client &client, std::string &cmd, std::vector<std::string> &args)
+static void	safe_send(Client &client, std::string to_send, std::string log_err = "")
 {
-	(void)cmd;
-	LOG_DEBUG << "Entering Server::do_mode";
+	if (send(client.getFd(), to_send.c_str(), to_send.size(), 0) < 0)
+		LOG_ERR << "Send failed";
+	if (!log_err.empty())
+		LOG_ERR << log_err;
+}
 
-	//verif si on doit send qqch au client dans ces cas la
-	if (args[0] == client.getNickname())
-	{
-		LOG_DEBUG << "Mode not on channel";
-		return ;
-	}
+void	Server::do_mode(Client &client, std::vector<std::string> &args)
+{
+	DEBUG(LOG_DEBUG << "Entering Server::do_mode");
+
 	if (!ISLOGGED(client.getIsLogged())) {
-		LOG_ERR << "client not logged";
+		safe_send(client, ":127.0.0.1 451 * :You have not registered\r\n", "Client not logged");
 		return;
 	}
 	if (args.size() < 2)
 	{
-		LOG_ERR << "Mode: not enough parameters";
+		safe_send(client, ":127.0.0.1 461 " + client.getNickname() + " MODE :Not enough parameters\r\n", "Mode: not enough parameters");
 		return ;
 	}
+	if (args[0] == client.getNickname()) 
+	{
+		LOG_DEBUG << "Mode not on channel";
+		return ;
+	}
+	
 
 	std::string channelName = args[0];
 	std::string modeString = args[1];
 	Channel 	*channel = getChannel(channelName);
-	if (!channel)
-	{
-		LOG_ERR << "Mode: \"" << channelName << "\": no such channel";
+	if (!channel) {
+		safe_send(client, "127.0.0.1 403 " + channelName + " :No such channel", channelName + " : no such channel");
 		return;
 	}
-	if (!channel->hasMember(client.getFd()))
-	{
-		LOG_ERR << "Mode: \"" << client.getNickname() << "\": not on channel" << channelName;
+	if (!channel->hasMember(client.getFd())) {
+		LOG_USER_ERR(client.getNickname()) << ": not on channel" << channelName;
 		return;
 	}
-	if (!channel->isOperator(client.getFd()))
-	{
-		LOG_ERR << "Mode: \"" << client.getNickname() << "\": is not operator";
+	if (!channel->isOperator(client.getFd())) {
+		LOG_USER_ERR(client.getNickname()) << ": is not operator";
 		return;
 	}
 
@@ -441,53 +445,42 @@ void	Server::do_mode(Client &client, std::string &cmd, std::vector<std::string> 
 	char 	sign;
 	if (modeString[0] == '+' || modeString[0] == '-')
 		sign = modeString[0];
-	else
-	{
+	else {
 		LOG_ERR << "Mode: invalid modestring";
 		return;
 	}
 
-	for (size_t i = 1; i < modeString.size(); i++)
-	{
+	for (size_t i = 1; i < modeString.size(); i++) {
 		char c = modeString[i];
-		if (c == '+' || c == '-')
-		{
+		if (c == '+' || c == '-') {
 			sign = c;
 			continue;
 		}
-
-		switch (c)
-		{
-			case 'i':
-			{
+		switch (c) {
+			case 'i': {
 				channel->setInviteOnly(sign == '+' ? 1 : 0);
 				break;
 			}
-			case 't':
-			{
+			case 't': {
 				channel->setTopicOpOnly(sign == '+' ? 1 : 0);
 				break;
 			}
-			case 'k':
-			{
+			case 'k': {
 				if (sign == '-')
 					channel->removeKey();
-				else if (++args_i >= args.size()) //send erreur ? return ?
+				else if (++args_i >= args.size())
 					LOG_ERR << "Mode: setKey: missing argument";
 				else
 					channel->setKey(args[args_i]);
 				break;
 			}
-			case 'o':
-			{
-				if (++args_i >= args.size()) //send erreur ? return ?
-				{
+			case 'o': {
+				if (++args_i >= args.size()) {
 					LOG_ERR << "Mode: addOp/removeOp: missing argument";
 					break;
 				}
 				int client_fd = findUser(args[args_i]);
-				if (client_fd == -1)
-				{
+				if (client_fd == -1) {
 					LOG_ERR << "Mode: addOp/removeOp: bad argument";
 					break;
 				}
@@ -497,22 +490,18 @@ void	Server::do_mode(Client &client, std::string &cmd, std::vector<std::string> 
 					channel->removeOperator(client_fd);
 				break;
 			}
-			case 'l':
-			{
+			case 'l': {
 				if (sign == '-')
 					channel->setUserLimit(0);
-				else
-				{
-					if (++args_i >= args.size()) //send erreur ? return ?
-					{
+				else {
+					if (++args_i >= args.size()) {
 						LOG_ERR << "Mode: setUserLimit: missing argument";
 						break;
 					}
 					std::istringstream iss(args[args_i]);
 					long n;
 					iss >> n;
-					if (iss.fail() || n <= 0)
-					{
+					if (iss.fail() || n <= 0) {
 						LOG_ERR << "Mode: setUserLimit: bad argument";
 						break;
 					}
@@ -520,11 +509,24 @@ void	Server::do_mode(Client &client, std::string &cmd, std::vector<std::string> 
 				}
 				break;
 			}
-			default:
-			{
+			default: {
 				LOG_ERR << "Mode: bad argument in modestring";
 				break;
 			}
+		}
+	}
+	std::string str = client.getNickname() + "!" + client.getUser().username + "@127.0.0.1 MODE " + channelName + " " + modeString;
+	for (size_t i = 2; i < args.size(); i++)
+		str += " " + args[i];
+	str += "\r\n";
+	std::map<int, Client *> members = channel->getMembers();
+	for(std::map<int, Client *>::iterator it = members.begin(); it != members.end(); it++) {
+		int currfd = it->first;
+		if (currfd == client.getFd())
+			continue;
+		if (send(currfd, str.c_str(), str.size(), 0) < 0) {
+			LOG_ERR << "Send failed.";
+			return;
 		}
 	}
 }
@@ -561,6 +563,8 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 	else if (cmd == "PRIVMSG") {
 		do_msg(client, args);
 	}
+	else if (cmd == "MODE")
+		do_mode(client, args);
 	else if (cmd == "QUIT")
 		quit(client, fdsToClose, args);
 	return (0);

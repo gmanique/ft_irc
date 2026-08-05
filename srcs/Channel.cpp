@@ -29,6 +29,17 @@ const std::string&				Channel::getKey() const {
 const std::map<int, Client *>&	Channel::getMembers() const {
 	return (_members);
 }
+uint8_t							Channel::getInviteOnly() const  {
+	return _inviteOnly;
+}
+uint8_t							Channel::getTopicOpOnly() const {
+	return _topicOpOnly;
+}
+size_t							Channel::getUserLimit() const   {
+	return _userLimit;
+}
+
+
 Client* Channel::getMember(int fd) const {
 	std::map<int, Client*>::const_iterator it = _members.find(fd);
 	if (it != _members.end())
@@ -40,6 +51,38 @@ Client* Channel::getMember(int fd) const {
 void	Channel::setTopic(const std::string &topic) {
 	_topic = topic;
 }
+
+void	Channel::setInviteOnly(uint8_t val)
+{
+	LOG_DEBUG << "setInviteOnly to " << static_cast<int>(val);
+	_inviteOnly = val;
+}
+
+void	Channel::setTopicOpOnly(uint8_t val)
+{
+	LOG_DEBUG << "setTopicOpOnly to " << static_cast<int>(val);
+	_topicOpOnly = val;
+}
+
+void	Channel::setUserLimit(size_t limit)
+{
+	LOG_DEBUG << "setUserLimit to " << limit;
+	_userLimit = limit;
+}
+
+void	Channel::setKey(const std::string &key)
+{
+	LOG_DEBUG << "setKey to " << key;
+	_key = key;
+}
+
+void	Channel::removeKey()
+{
+	LOG_DEBUG << "removeKey";
+	_key.clear();
+}
+
+
 
 // Gestion des membres
 void	Channel::addMember(Client *client) {

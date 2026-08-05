@@ -21,24 +21,25 @@ class Server {
 		void								handleClientData(int clientFd, std::vector<int> &fdsToClose);
 		void								disconnectClient(int fd);
 
+		int									linkClientToChannel(Client *client, std::string &channel_name);
+		void								unlinkClientFromChannel(Client *client, std::string &channel_name);
+		
 		// Pour PRIVMSG
 		void								send_to_channel(Client &client, std::vector<std::string> &args);
 		void								send_to_user(Client &client, std::vector<std::string> &args);
 		
 		int									executeCommand(Client &client, std::string &command, std::vector<int> &fdsToClose);
-		int									linkClientToChannel(Client *client, std::string &channel_name);
-		void								unlinkClientFromChannel(Client *client, std::string &channel_name);
-		void								do_cap(Client &client, std::string &cmd);
-		int									checker_password(Client &client, std::string &cmd, std::vector<int> &fdsToClose, std::vector<std::string> &args);
-		std::string							first_word(std::string &cmd);
-		int									nickname(Client &client, std::string &cmd, std::vector<std::string> &args);			 	
-		int 								user(Client &client, std::string &cmd, std::vector<std::string> &args);		
+		
+		void								do_cap(Client &client, std::vector<std::string> &args);
+		int									checker_password(Client &client, std::vector<int> &fdsToClose, std::vector<std::string> &args);
 
-		int									do_join(Client &client, std::string &command, std::vector<int> &fdsToClose);
-		// int									handle_signal();
-		// void								handler_sig(int signum);
-		void								ping_pong(Client &client, std::string &cmd, std::vector<std::string> &args);
-		void								do_msg(Client &client, std::string &cmd, std::vector<std::string> &args);
+		int									nickname(Client &client, std::vector<std::string> &args);			 	
+		int 								user(Client &client, std::vector<std::string> &args);		
+
+		int									do_join(Client &client, std::vector<int> &fdsToClose, std::vector<std::string> &args);
+		void								ping_pong(Client &client, std::vector<std::string> &args);
+		void								do_msg(Client &client, std::vector<std::string> &args);
+	
 	public:
 		Server();
 		Server(int port, const std::string& password);

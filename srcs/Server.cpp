@@ -172,8 +172,8 @@ void parseCommand(const std::string &line, std::string &command, std::vector<std
     }
 }
 
-void	Server::do_cap(Client &client, std::string &cmd) {
-	if (cmd == "CAP LS 302") {
+void	Server::do_cap(Client &client, std::vector<std::string> &args) {
+	if (args.size() == 2 && args[0] == "LS" && args[1] == "302") {
 		LOG_DEBUG << "Sending to client " << client.getFd() << " : " << "CAP * LS :\\r\\n"; 
 		if (send(client.getFd(), "CAP * LS :\r\n", 12, 0) < 0)
 		{
@@ -183,18 +183,17 @@ void	Server::do_cap(Client &client, std::string &cmd) {
 	}
 }
 
-void	Server::ping_pong(Client &client, std::string &cmd, std::vector<std::string> &args) {
+void	Server::ping_pong(Client &client, std::vector<std::string> &args) {
 	std::string rep = "PONG :127.0.0.1";
 	if (send(client.getFd(), rep.c_str(), rep.size(), 0) < 0) {
 		LOG_ERR << "Send failed";
 		return;
 	}
 	DEBUG(LOG_DEBUG << "Answered the ping with pong !";);
-	(void)cmd;
 	(void)args;
 }
 
-int	Server::checker_password(Client &client, std::string &cmd, std::vector<int> &fdsToClose, std::vector<std::string> &args)
+int	Server::checker_password(Client &client,std::vector<int> &fdsToClose, std::vector<std::string> &args)
 {
 	if (HASPASSWORD(client.getIsLogged())) {
 		LOG_INFO << "You already logged in";
@@ -202,7 +201,6 @@ int	Server::checker_password(Client &client, std::string &cmd, std::vector<int> 
 	}
 	if (args.size() != 1)
 		return (-1);//probleme
-	(void)cmd;
 	
 	if (args[0] == _password) {
 		LOG_INFO << "Password is correct";
@@ -223,17 +221,17 @@ int	Server::checker_password(Client &client, std::string &cmd, std::vector<int> 
 	return (0);
 }
 
-std::string Server::first_word(std::string &command)
-{
-	size_t pos = command.find(' ');
-	if (pos != std::string::npos)
-		LOG_PROTO << "Pas d'espace OK"; 
-	std::string cmd = command.substr(0, pos);
-	return (cmd);
+// std::string Server::first_word(std::string &command)
+// {
+// 	size_t pos = command.find(' ');
+// 	if (pos != std::string::npos)
+// 		LOG_PROTO << "Pas d'espace OK"; 
+// 	std::string cmd = command.substr(0, pos);
+// 	return (cmd);
 	
-}
+// }
 
-int Server::nickname(Client &client, std::string &cmd, std::vector<std::string> &args)
+int Server::nickname(Client &client, std::vector<std::string> &args)
 {
 	// std::size_t pos = cmd.find_last_not_of(" \r\n\t\f\v");
 	// cmd = cmd.substr(0, pos + 1);
@@ -245,14 +243,12 @@ int Server::nickname(Client &client, std::string &cmd, std::vector<std::string> 
 	client.setNickname(nickname);
 	LOG_USER_INFO(client.getNickname()) << "Nickname updated.";
 	SETHASNICKNAME(client.getIsLogged());
-	(void)cmd;
 	return (0);
 }
 
-int Server::user(Client &client, std::string &cmd, std::vector<std::string> &args)
+int Server::user(Client &client, std::vector<std::string> &args)
 {
 	
-	(void)cmd;
 	if (ISLOGGED(client.getIsLogged())) {
 		std::string rep = "462 " + client.getNickname() + " :Unauthorized command (already registered)";
 		send(client.getFd(), rep.c_str(), rep.size(), 0);
@@ -279,24 +275,28 @@ int Server::user(Client &client, std::string &cmd, std::vector<std::string> &arg
 }
 
 
-int	Server::do_join(Client &client, std::string &command, std::vector<int> &fdsToClose) {
+int	Server::do_join(Client &client, std::vector<int> &fdsToClose, std::vector<std::string> &args) {
 	if (!ISLOGGED(client.getIsLogged())) {
 		LOG_USER_ERR(client.getNickname()) << "Client must be fully logged in before connecting to a channel.";
 		DEBUG(LOG_DEBUG << "\nHasPassword : " << HASPASSWORD(client.getIsLogged())						 << "\nHasNickname : " << HASNICKNAME(client.getIsLogged())						  << "\nHasUser : " << HASUSER(client.getIsLogged()););
 		return (USAGE_ERROR);
 	}
-	std::size_t pos = command.find_last_not_of(" \r\n\t\f\v");
-	command = command.substr(0, pos + 1);
+	// std::size_t pos = command.find_last_not_of(" \r\n\t\f\v");
+	// command = command.substr(0, pos + 1);
 
-	pos = command.find_last_of(" \r\n\t\f\v");
-	std::string channel = command.substr(pos + 1);
-
+	// pos = command.find_last_of(" \r\n\t\f\v");
+	// std::string channel = command.substr(pos + 1);
+	if (args.size() == 0) {
+		LOG_ERR << "what are u trying to join";
+		return (-1);
+	}
+	std::string channel = args[0];
 	LOG_USER_TRACE(client.getNickname()) << " trying to connect to channel : " << channel;
-	(void)fdsToClose;
 	if (!linkClientToChannel(&client, channel)) {
 		// renvoyer un message disant JOIN etc au client
 		;
 	}
+	(void)fdsToClose;
 	return (0);
 }
 
@@ -329,7 +329,7 @@ void	Server::send_to_user(Client &client, std::vector<std::string> &args) {
 }
 
 
-void	Server::do_msg(Client &client, std::string &cmd, std::vector<std::string> &args) {
+void	Server::do_msg(Client &client, std::vector<std::string> &args) {
 	if (args.size() < 2) {
 		LOG_PROTO << "Please write the command correctly, PRIVMSG needs 2 arguments";
 		return;
@@ -340,7 +340,6 @@ void	Server::do_msg(Client &client, std::string &cmd, std::vector<std::string> &
 	} else {
 		send_to_user(client, args);
 	}
-	(void)cmd;
 }
 
 int	Server::executeCommand(Client &client, std::string &command, std::vector<int> &fdsToClose)
@@ -350,31 +349,31 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 	std::vector<std::string> args;
 	parseCommand(command, cmd, args);
 	if (cmd == "CAP")
-		Server::do_cap(client, command);
+		Server::do_cap(client, args);
 	else if (cmd == "PASS")
 	{
-		if (checker_password(client, command, fdsToClose, args) == -1)
+		if (checker_password(client, fdsToClose, args) == -1)
 			return (-1);
 	}
 	else if (cmd == "NICK")
 	{
-		nickname(client, command, args);
+		nickname(client, args);
 	}
 	else if (cmd == "USER")
 	{
-		user(client, command, args);
+		user(client, args);
 	}
 	else if (!ISLOGGED(client.getIsLogged())) {
 		LOG_ERR << "Please connect before anything.";
 		return (-1);
 	}
 	else if (cmd == "JOIN") {
-		do_join(client, command, fdsToClose);
+		do_join(client, fdsToClose, args);
 	}
 	else if (cmd == "PING")
-		ping_pong(client, cmd, args);
+		ping_pong(client, args);
 	else if (cmd == "PRIVMSG") {
-		do_msg(client, cmd, args);
+		do_msg(client, args);
 	}
 	return (0);
 }

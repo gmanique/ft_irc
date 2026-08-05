@@ -233,16 +233,30 @@ int	Server::checker_password(Client &client,std::vector<int> &fdsToClose, std::v
 
 int Server::nickname(Client &client, std::vector<std::string> &args)
 {
-	// std::size_t pos = cmd.find_last_not_of(" \r\n\t\f\v");
-	// cmd = cmd.substr(0, pos + 1);
-
-	// pos = cmd.find_last_of(" \r\n\t\f\v");
-	// std::string nickname = cmd.substr(pos + 1);
-
-	std::string nickname = args[0];
-	client.setNickname(nickname);
-	LOG_USER_INFO(client.getNickname()) << "Nickname updated.";
-	SETHASNICKNAME(client.getIsLogged());
+	std::string msg = "";
+	if (args.size() == 0) {
+		// gerer l'erreur
+		return (-1);
+	}
+	if (args[0].empty()) {
+		// gerer l'erreur
+		return (-1);	
+	}
+	if (!HASNICKNAME(client.getIsLogged())) {
+		std::string nickname = args[0];
+		client.setNickname(nickname);
+		LOG_USER_INFO(client.getNickname()) << "Nickname updated.";
+		SETHASNICKNAME(client.getIsLogged());
+	}
+	else {
+		std::string old_nick = client.getNickname();
+		std::string nickname = args[0];
+		client.setNickname(nickname);
+		LOG_USER_INFO(client.getNickname()) << "Nickname updated.";
+		msg = ":" + old_nick + "!" + client.getUser().username + "@127.0.0.1 NICK :" + nickname + "\r\n";
+		// msg = ":<ancien_pseudo>!<username>@<host> NICK :<nouveau_pseudo>\r\n"
+		send(client.getFd(), msg.c_str(), msg.size(), 0);
+	}
 	return (0);
 }
 
@@ -264,7 +278,7 @@ int Server::user(Client &client, std::vector<std::string> &args)
 
 	t_user	user;
 	user.username = args[0];
-	user.realname = args[3]; // faut retirer le ':', jai la flemme la
+	user.realname = args[3];
 	client.setUser(user);
 
 	LOG_USER_INFO(client.getNickname()) << "User updated.";

@@ -257,8 +257,11 @@ int Server::nickname(Client &client, std::vector<std::string> &args)
 		std::string old_nick = client.getNickname();
 		std::string nickname = args[0];
 	
-		if (checkNickname(nickname) == -1)
+		if (findUser(nickname) != -1)
+		{
+			LOG_USER_INFO(nickname) << "Already used";
 			return (0);
+		}
 		client.setNickname(nickname);
 		LOG_USER_INFO(client.getNickname()) << "Nickname updated.";
 		msg = ":" + old_nick + "!" + client.getUser().username + "@127.0.0.1 NICK :" + nickname + "\r\n";

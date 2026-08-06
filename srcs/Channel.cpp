@@ -116,7 +116,15 @@ uint8_t	Channel::isOperator(int fd) const {
 	return (_operators.count(fd) > 0);
 }
 
-
+void	Channel::addInvMember(int fd) {
+	_invitedFds.insert(fd);
+}
+void	Channel::removeInvMember(int fd) {
+	_invitedFds.erase(fd);
+}
+uint8_t	Channel::hasInvMember(int fd) const {
+	return (_invitedFds.count(fd) > 0);
+}
 
 
 

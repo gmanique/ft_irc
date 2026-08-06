@@ -529,6 +529,68 @@ void	Server::do_mode(Client &client, std::vector<std::string> &args)
 	}
 }
 
+int Server::do_invite(Client &client, std::vector<std::string> &args) {
+	std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
+	std::string msg;
+
+	if (args.size() < 2) {
+		LOG_ERR << "Not enough arguments.";
+		msg = ":127.0.0.1 461 " + nick + " INVITE :Not enough parameters\r\n";
+		send(client.getFd(), msg.c_str(), msg.size(), 0);
+		return (-1);
+	}
+
+	std::string user = args[0];
+	std::string channel = args[1];
+
+	Channel *c = getChannel(channel);
+	if (!c) {
+		LOG_ERR << "Channel does not exist.";
+		msg = ":127.0.0.1 403 " + nick + " " + channel + " :No such channel\r\n";
+		send(client.getFd(), msg.c_str(), msg.size(), 0);
+		return (-1);
+	}
+
+	if (!c->hasMember(client.getFd())) {
+		LOG_USER_ERR(client.getNickname()) << "You must be part of the channel to invite someone.";
+		msg = ":127.0.0.1 442 " + nick + " " + channel + " :You're not on that channel\r\n";
+		send(client.getFd(), msg.c_str(), msg.size(), 0);
+		return (-1);
+	}
+
+	if (c->getInviteOnly() && !c->isOperator(client.getFd())) {
+		LOG_USER_ERR(client.getNickname()) << "You must be operator to invite someone.";
+		msg = ":127.0.0.1 482 " + nick + " " + channel + " :You're not channel operator\r\n";
+		send(client.getFd(), msg.c_str(), msg.size(), 0);
+		return (-1);
+	}
+
+	int dest_fd = findUser(user);
+	if (dest_fd == -1) {
+		LOG_ERR << "No such user as " << user << ".";
+		msg = ":127.0.0.1 401 " + nick + " " + user + " :No such nick/channel\r\n";
+		send(client.getFd(), msg.c_str(), msg.size(), 0);
+		return (-1);
+	}
+
+	if (c->hasMember(dest_fd)) {
+		LOG_ERR << user << " is already part of the channel.";
+		msg = ":127.0.0.1 443 " + nick + " " + user + " " + channel + " :is already on channel\r\n";
+		send(client.getFd(), msg.c_str(), msg.size(), 0);
+		return (-1);
+	}
+
+	c->addInvMember(dest_fd);
+
+	msg = ":127.0.0.1 341 " + nick + " " + user + " " + channel + "\r\n";
+	send(client.getFd(), msg.c_str(), msg.size(), 0);
+
+	msg = ":" + nick + "!" + client.getUser().username + "@127.0.0.1 INVITE " + user + " :" + channel + "\r\n";
+	send(dest_fd, msg.c_str(), msg.size(), 0);
+
+	return (SUCCESS);
+}
+
 int	Server::executeCommand(Client &client, std::string &command, std::vector<int> &fdsToClose)
 {
 	std::string cmd = "";
@@ -563,6 +625,9 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 	}
 	else if (cmd == "MODE")
 		do_mode(client, args);
+	else if (cmd == "INVITE") {
+		do_invite(client, args);
+	}
 	else if (cmd == "QUIT")
 		quit(client, fdsToClose, args);
 	return (0);

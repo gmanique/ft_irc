@@ -42,7 +42,11 @@ class Channel {
 		void	setUserLimit(size_t limit);
 		void	setKey(const std::string &key);
 		void	removeKey();
-
+	
+		void	addInvMember(int fd);
+		void	removeInvMember(int fd);
+		uint8_t	hasInvMember(int fd) const;
+		
 		void	addMember(Client *client);
 		void	removeMember(int fd);
 		uint8_t	hasMember(int fd) const;

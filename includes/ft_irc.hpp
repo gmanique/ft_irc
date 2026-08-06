@@ -18,6 +18,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <cctype>
 
 #include <cerrno>
 #include <cstdlib>

@@ -257,6 +257,27 @@ int Server::nickname(Client &client, std::vector<std::string> &args)
 		std::string old_nick = client.getNickname();
 		std::string nickname = args[0];
 	
+		if (isdigit(nickname[0]))
+		{
+			LOG_USER_INFO(nickname) << "Invalid nickname";
+			return (0);
+		}
+		int i = 0;
+		while (nickname[i])
+		{
+			if (nickname[i] != '[' &&
+				nickname[i] != ']' &&
+				nickname[i] != '{' &&
+				nickname[i] != '}' &&
+				nickname[i] != '\\' &&
+				nickname[i] != '|' &&
+				!(isalnum(nickname[i])))
+			{
+				LOG_USER_INFO(nickname) << "Invalid nickname";
+				return (0);
+			}
+			i++;
+		}
 		if (findUser(nickname) != -1)
 		{
 			LOG_USER_INFO(nickname) << "Already used";

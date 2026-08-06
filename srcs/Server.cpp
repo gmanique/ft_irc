@@ -57,6 +57,36 @@ int	Server::findUser(std::string &username) {
 	return (-1);
 }
 
+// return : 0 = a rejoint, 1 : etait deja dedans
+int	Server::linkClientToChannel(Client *client, std::string &channel_name) {
+	Channel *c = getChannel(channel_name);
+	if (!c) {
+		LOG_INFO << "creating channel `" << channel_name << "`.";
+		c = new Channel(channel_name); // Deja gere par le try catch du main
+		addChannel(c);
+		LOG_USER_INFO(channel_name) << " Channel created.";
+	}
+	if (!c->hasMember(client->getFd())) {
+		c->addMember(client);
+		LOG_USER_INFO(client->getNickname()) << " added to channel " << channel_name << ".";
+		return (0);
+	}
+	LOG_USER_INFO(client->getNickname()) << " already part of channel " << channel_name << ".";
+	return (1);
+}
+
+void	Server::unlinkClientFromChannel(Client *client, std::string &channel_name) {
+ 	Channel *c = getChannel(channel_name);
+ 	if (!c)
+ 		return ;
+ 	if (!c->hasMember(client->getFd()))
+ 		return ;
+ 	c->removeMember(client->getFd());
+ 	if (c->getMembers().empty()) {
+ 		deleteChannel(channel_name);
+ 		delete(c);
+	}
+}
 
 int	Server::init() {
 	_serverFd = socket(AF_INET, SOCK_STREAM, 0);
@@ -212,12 +242,11 @@ int Server::nickname(Client &client, std::vector<std::string> &args)
 	}
 	if (args[0].empty()) {
 		// gerer l'erreur
-		return (-1);	
+		return (-1);
 	}
 	if (!HASNICKNAME(client.getIsLogged())) {
 		std::string nickname = args[0];
-		client.setNickname(nickname);
-		LOG_USER_INFO(client.getNickname()) << "Nickname updated.";
+		LOG_USER_INFO(client.getNickname()) << "Nickname created.";
 		SETHASNICKNAME(client.getIsLogged());
 		if (ISLOGGED(client.getIsLogged())) {
 			std::string rep = ":server_name 001 " + client.getNickname() + " :Welcome to the Localnet IRC Network " + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1\r\n";
@@ -227,11 +256,15 @@ int Server::nickname(Client &client, std::vector<std::string> &args)
 	else {
 		std::string old_nick = client.getNickname();
 		std::string nickname = args[0];
+	
+		if (checkNickname(nickname) == -1)
+			return (0);
 		client.setNickname(nickname);
 		LOG_USER_INFO(client.getNickname()) << "Nickname updated.";
 		msg = ":" + old_nick + "!" + client.getUser().username + "@127.0.0.1 NICK :" + nickname + "\r\n";
 		send(client.getFd(), msg.c_str(), msg.size(), 0);
 	}
+	
 	return (0);
 }
 
@@ -641,6 +674,7 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 {
 	std::string cmd = "";
 	std::vector<std::string> args;
+	std::set<std::string> nicknames;
 	parseCommand(command, cmd, args);
 	if (cmd == "CAP")
 		Server::do_cap(client, args);

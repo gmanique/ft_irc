@@ -1,8 +1,8 @@
 Commandes :
-MODE 🕰️
+MODE
 OPER (?)
 
-PRIVMSG 🕰️
+PRIVMSG
 
 
 KICK

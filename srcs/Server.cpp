@@ -1,5 +1,13 @@
 #include "Server.hpp"
 
+static void	safe_send(Client &client, std::string to_send, std::string log_err = "")
+{
+	if (send(client.getFd(), to_send.c_str(), to_send.size(), 0) < 0)
+		LOG_ERR << "Send failed.";
+	if (!log_err.empty())
+		LOG_ERR << log_err;
+}
+
 Server::Server() : _port(6667), _password(""), _serverFd(-1) {
 	DEBUG(LOG_TRACE << "[SERVER] Creating struct with port `" << _port << "` and password `" << _password << "`.";);
 }
@@ -49,36 +57,6 @@ int	Server::findUser(std::string &username) {
 	return (-1);
 }
 
-// return : 0 = a rejoint, 1 : etait deja dedans
-int	Server::linkClientToChannel(Client *client, std::string &channel_name) {
-	Channel *c = getChannel(channel_name);
-	if (!c) {
-		LOG_INFO << "creating channel `" << channel_name << "`.";
-		c = new Channel(channel_name); // Deja gere par le try catch du main
-		addChannel(c);
-		LOG_USER_INFO(channel_name) << " Channel created.";
-	}
-	if (!c->hasMember(client->getFd())) {
-		c->addMember(client);
-		LOG_USER_INFO(client->getNickname()) << " added to channel " << channel_name << ".";
-		return (0);
-	}
-	LOG_USER_INFO(client->getNickname()) << " already part of channel " << channel_name << ".";
-	return (1);
-}
-
-void	Server::unlinkClientFromChannel(Client *client, std::string &channel_name) {
- 	Channel *c = getChannel(channel_name);
- 	if (!c)
- 		return ;
- 	if (!c->hasMember(client->getFd()))
- 		return ;
- 	c->removeMember(client->getFd());
- 	if (c->getMembers().empty()) {
- 		deleteChannel(channel_name);
- 		delete(c);
-	}
-}
 
 int	Server::init() {
 	_serverFd = socket(AF_INET, SOCK_STREAM, 0);
@@ -307,25 +285,100 @@ int Server::user(Client &client, std::vector<std::string> &args)
 	return (0);
 }
 
-
-int	Server::do_join(Client &client, std::vector<int> &fdsToClose, std::vector<std::string> &args) {
-	if (!ISLOGGED(client.getIsLogged())) {
-		LOG_USER_ERR(client.getNickname()) << "Client must be fully logged in before connecting to a channel.";
-		DEBUG(LOG_DEBUG << "\nHasPassword : " << HASPASSWORD(client.getIsLogged())						 << "\nHasNickname : " << HASNICKNAME(client.getIsLogged())						  << "\nHasUser : " << HASUSER(client.getIsLogged()););
-		return (USAGE_ERROR);
+void	Server::unlinkClientFromChannel(Client *client, std::string &channel_name) {
+ 	Channel *c = getChannel(channel_name);
+ 	if (!c)
+ 		return ;
+ 	if (!c->hasMember(client->getFd()))
+ 		return ;
+ 	c->removeMember(client->getFd());
+ 	if (c->getMembers().empty()) {
+ 		deleteChannel(channel_name);
+ 		delete(c);
 	}
-	if (args.size() == 0) {
-		LOG_ERR << "what are u trying to join";
+}
+
+// return : 0 = a rejoint, 1 : etait deja dedans
+int	Server::linkClientToChannel(Client *client, std::string &channel_name) {
+	Channel *c = getChannel(channel_name);
+	if (!c) {
+		LOG_INFO << "creating channel `" << channel_name << "`.";
+		c = new Channel(channel_name); // Deja gere par le try catch du main
+		addChannel(c);
+		LOG_USER_INFO(channel_name) << " Channel created.";
+	}
+	if (!c->hasMember(client->getFd())) {
+		c->addMember(client);
+		LOG_USER_INFO(client->getNickname()) << " added to channel " << channel_name << ".";
+		return (0);
+	}
+	LOG_USER_INFO(client->getNickname()) << " already part of channel " << channel_name << ".";
+	return (1);
+}
+
+int Server::do_join(Client &client, std::vector<std::string> &args) {
+	std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
+
+	if (args.empty()) {
+		safe_send(client, ":127.0.0.1 461 " + nick + " JOIN :Not enough parameters\r\n");
 		return (-1);
 	}
-	std::string channel = args[0];
-	LOG_USER_TRACE(client.getNickname()) << " trying to connect to channel : " << channel;
-	if (!linkClientToChannel(&client, channel)) {
-		// renvoyer un message disant JOIN etc au client
-		;
+
+	std::string channelName = args[0];
+	std::string key = (args.size() > 1) ? args[1] : "";
+
+	Channel *c = getChannel(channelName);
+
+	if (!c) {
+		c = new Channel(channelName);
+		addChannel(c);
+	} else {
+		if (c->hasMember(client.getFd()))
+			return (0);
+
+		if (c->getInviteOnly() && !c->hasInvMember(client.getFd())) {
+			safe_send(client, ":127.0.0.1 473 " + nick + " " + channelName + " :Cannot join channel (+i)\r\n");
+			return (-1);
+		}
+		if (!c->getKey().empty() && c->getKey() != key) {
+			safe_send(client, ":127.0.0.1 475 " + nick + " " + channelName + " :Cannot join channel (+k)\r\n");
+			return (-1);
+		}
+		if (c->getUserLimit() > 0 && c->getMembers().size() >= c->getUserLimit()) {
+			safe_send(client, ":127.0.0.1 471 " + nick + " " + channelName + " :Cannot join channel (+l)\r\n");
+			return (-1);
+		}
 	}
-	(void)fdsToClose;
-	return (0);
+
+	c->addMember(&client);
+	if (c->hasInvMember(client.getFd()))
+		c->removeInvMember(client.getFd());
+
+	std::string joinMsg = ":" + nick + "!" + client.getUser().username + "@127.0.0.1 JOIN " + channelName + "\r\n";
+	std::map<int, Client*> members = c->getMembers();
+	for (std::map<int, Client*>::iterator it = members.begin(); it != members.end(); ++it) {
+		send(it->first, joinMsg.c_str(), joinMsg.size(), 0);
+	}
+
+	if (!c->getTopic().empty()) {
+		safe_send(client, ":127.0.0.1 332 " + nick + " " + channelName + " :" + c->getTopic() + "\r\n");
+	} else {
+		safe_send(client, ":127.0.0.1 331 " + nick + " " + channelName + " :No topic is set\r\n");
+	}
+
+	std::string names = "";
+	for (std::map<int, Client*>::iterator it = members.begin(); it != members.end(); ++it) {
+		if (!names.empty())
+			names += " ";
+		if (c->isOperator(it->first))
+			names += "@";
+		names += it->second->getNickname();
+	}
+	safe_send(client, ":127.0.0.1 353 " + nick + " = " + channelName + " :" + names + "\r\n");
+
+	safe_send(client, ":127.0.0.1 366 " + nick + " " + channelName + " :End of /NAMES list\r\n");
+
+	return (SUCCESS);
 }
 
 int	Server::send_to_channel(Client &client, std::vector<std::string> &args) {
@@ -397,13 +450,6 @@ void	Server::do_msg(Client &client, std::vector<std::string> &args) {
 	}
 }
 
-static void	safe_send(Client &client, std::string to_send, std::string log_err = "")
-{
-	if (send(client.getFd(), to_send.c_str(), to_send.size(), 0) < 0)
-		LOG_ERR << "Send failed.";
-	if (!log_err.empty())
-		LOG_ERR << log_err;
-}
 
 void	Server::do_mode(Client &client, std::vector<std::string> &args)
 {
@@ -616,7 +662,7 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 		return (-1);
 	}
 	else if (cmd == "JOIN") {
-		do_join(client, fdsToClose, args);
+		do_join(client, args);
 	}
 	else if (cmd == "PING")
 		ping_pong(client, args);

@@ -36,7 +36,7 @@ class Server {
 		int									nickname(Client &client, std::vector<std::string> &args);			 	
 		int 								user(Client &client, std::vector<std::string> &args);		
 
-		int									do_join(Client &client, std::vector<int> &fdsToClose, std::vector<std::string> &args);
+		int									do_join(Client &client, std::vector<std::string> &args);
 		void								ping_pong(Client &client, std::vector<std::string> &args);
 		void								do_msg(Client &client, std::vector<std::string> &args);
 		void								do_mode(Client &client, std::vector<std::string> &args);

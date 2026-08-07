@@ -1,10 +1,4 @@
 Commandes :
-MODE
-OPER (?)
-
-PRIVMSG
-
-
-KICK
-INVITE
-TOPIC
+- OPER (?)
+- KICK
+- TOPIC

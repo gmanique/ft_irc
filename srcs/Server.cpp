@@ -425,68 +425,86 @@ int Server::do_join(Client &client, std::vector<std::string> &args) {
 	return (SUCCESS);
 }
 
-int	Server::send_to_channel(Client &client, std::vector<std::string> &args) {
+int Server::send_to_channel(Client &client, std::vector<std::string> &args) {
 	std::string channel_name = args[0];
+	std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
+
 	Channel *c = getChannel(channel_name);
 	if (!c) {
-		std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
 		std::string msg = ":127.0.0.1 403 " + nick + " " + channel_name + " :No such channel\r\n";
 		send(client.getFd(), msg.c_str(), msg.size(), 0);
 		LOG_USER_ERR(client.getNickname()) << "Channel " << channel_name << " does not exist."; 
 		return (-1);
 	}
-	int	sender = client.getFd();
+
+	if (!c->hasMember(client.getFd())) {
+		std::string msg = ":127.0.0.1 404 " + nick + " " + channel_name + " :Cannot send to channel\r\n";
+		send(client.getFd(), msg.c_str(), msg.size(), 0);
+		LOG_USER_ERR(client.getNickname()) << "Cannot send to channel " << channel_name << " (not a member).";
+		return (-1);
+	}
+
 	std::string message = "";
-	for(size_t i = 1; i < args.size(); i++) {
+	for (size_t i = 1; i < args.size(); i++) {
 		message += args[i];
-		if (i < args.size()-1)
+		if (i < args.size() - 1)
 			message += " ";
 	}
+
+	int sender = client.getFd();
 	std::map<int, Client *> clients = c->getMembers();
 	for (std::map<int, Client*>::iterator it = clients.begin(); it != clients.end(); ++it) {
 		int clientFd = it->first;
 		if (clientFd == sender)
 			continue;
-	
-		std::string msg = ":" + client.getNickname() + "!" + client.getUser().username \
+		std::string msg = ":" + client.getNickname() + "!" + client.getUser().username 
 			+ "@127.0.0.1 PRIVMSG " + channel_name + " :" + message + "\r\n";
 		send(clientFd, msg.c_str(), msg.size(), 0);
 	}
 	return (0);
 }
 
-int	Server::send_to_user(Client &client, std::vector<std::string> &args) {
-    
-    std::string destination_name = args[0];
-    int fd = findUser(destination_name);
-    
-    if (fd == -1) {
-        std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
+int Server::send_to_user(Client &client, std::vector<std::string> &args) {
+	std::string destination_name = args[0];
+	int fd = findUser(destination_name);
+
+	if (fd == -1) {
+		std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
 		std::string msg = ":127.0.0.1 401 " + nick + " " + destination_name + " :No such nick/channel\r\n";
 		send(client.getFd(), msg.c_str(), msg.size(), 0);
 		LOG_USER_ERR(client.getNickname()) << "User " << destination_name << " does not exist."; 
 		return (-1);
 	}
-    std::string msg = ":" + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1 PRIVMSG " + destination_name + " :" + args[1] + "\r\n";
-    
-    send(fd, msg.c_str(), msg.size(), 0);
+
+	std::string message = "";
+	for (size_t i = 1; i < args.size(); i++) {
+		message += args[i];
+		if (i < args.size() - 1)
+			message += " ";
+	}
+
+	std::string msg = ":" + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1 PRIVMSG " + destination_name + " :" + message + "\r\n";
+	send(fd, msg.c_str(), msg.size(), 0);
 	return (0);
 }
 
+void Server::do_msg(Client &client, std::vector<std::string> &args) {
+	std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
 
-void	Server::do_msg(Client &client, std::vector<std::string> &args) {
-	if (args.size() < 2) {
-		std::string msg;
-		std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
-		if (args.size() == 0)
-			msg = ":127.0.0.1 411 " + nick + " :No recipient given (PRIVMSG)\r\n";
-		else
-			msg = ":127.0.0.1 412 " + nick + " :No text to send\r\n";
+	if (args.empty()) {
+		std::string msg = ":127.0.0.1 411 " + nick + " :No recipient given (PRIVMSG)\r\n";
 		send(client.getFd(), msg.c_str(), msg.size(), 0);
-		LOG_USER_ERR(client.getNickname()) << "tried to send a message without the good amount of arguments."; 
-		return ;
+		return;
 	}
+
+	if (args.size() < 2 || args[1].empty()) {
+		std::string msg = ":127.0.0.1 412 " + nick + " :No text to send\r\n";
+		send(client.getFd(), msg.c_str(), msg.size(), 0);
+		return;
+	}
+
 	DEBUG(LOG_USER_DEBUG(client.getNickname()) << "Sending message to " << args[0];);
+
 	if (args[0][0] == '#') {
 		send_to_channel(client, args);
 	} else {

@@ -200,14 +200,19 @@ void	Server::do_cap(Client &client, std::vector<std::string> &args) {
 	}
 }
 
-void	Server::ping_pong(Client &client, std::vector<std::string> &args) {
-	std::string rep = "PONG :127.0.0.1\r\n";
-	if (send(client.getFd(), rep.c_str(), rep.size(), 0) < 0) {
-		LOG_ERR << "Send failed";
+void Server::ping_pong(Client &client, std::vector<std::string> &args) {
+	std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
+
+	if (args.empty()) {
+		safe_send(client, ":127.0.0.1 409 " + nick + " :No origin specified\r\n");
 		return;
 	}
-	DEBUG(LOG_DEBUG << "Answered the ping with pong !";);
-	(void)args;
+
+	std::string token = args[0];
+	std::string rep = ":127.0.0.1 PONG 127.0.0.1 :" + token + "\r\n";
+
+	safe_send(client, rep);
+	DEBUG(LOG_DEBUG << "Answered PING with PONG to " << nick;);
 }
 
 int	Server::checker_password(Client &client,std::vector<int> &fdsToClose, std::vector<std::string> &args)
@@ -260,61 +265,57 @@ int Server::parseNickname(std::string &nickname)
 int Server::nickname(Client &client, std::vector<std::string> &args)
 {
 	std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
-	std::string msg = "";
-	if (args.size() == 0) {
-		safe_send(client, ":127.0.0.1 431 " + nick + " NICK :No nickname given\r\n");
+	if (args.empty() || args[0].empty()) {
+		safe_send(client, ":127.0.0.1 431 " + nick + " :No nickname given\r\n");
 		return (-1);
 	}
-	if (args[0].empty()) {
-		safe_send(client, ":127.0.0.1 431 " + nick + " NICK :No nickname given\r\n");
+	std::string newNick = args[0];
+	if (parseNickname(newNick) == 0) {
+		safe_send(client, ":127.0.0.1 432 " + nick + " " + newNick + " :Erroneous nickname\r\n");
 		return (-1);
 	}
-	if (!HASNICKNAME(client.getIsLogged())) {
-		std::string nickname = args[0];
-		std::string old_nick = client.getNickname();
-	
-		if (parseNickname(nickname) == 0)
-		{
-			safe_send(client, ":127.0.0.1 432 " + nick + " NICK :Erroneous nickname\r\n");
+	int existingFd = findUser(newNick);
+	if (existingFd != -1 && existingFd != client.getFd()) {
+		safe_send(client, ":127.0.0.1 433 " + nick + " " + newNick + " :Nickname is already in use\r\n");
+		LOG_USER_INFO(newNick) << "Already used";
+		return (-1);
+	}
+	std::string oldNick = client.getNickname();
+	if (HASNICKNAME(client.getIsLogged())) {
+		if (oldNick == newNick)
 			return (0);
-		}
-		if (findUser(nickname) != -1)
-		{
-			safe_send(client, ":127.0.0.1 433 " + nick + nickname + " NICK :Nickname is already in use\r\n");
-			LOG_USER_INFO(nickname) << "Already used";
-			return (0);
-		}
-		client.setNickname(nickname);
-		LOG_USER_INFO(client.getNickname()) << "Nickname updated.";
-		msg = ":" + old_nick + "!" + client.getUser().username + "@127.0.0.1 NICK :" + nickname + "\r\n";
-		send(client.getFd(), msg.c_str(), msg.size(), 0);
-		LOG_USER_INFO(client.getNickname()) << "Nickname created.";
-		SETHASNICKNAME(client.getIsLogged());
-		if (ISLOGGED(client.getIsLogged())) {
-			std::string rep = ":server_name 001 " + client.getNickname() + " :Welcome to the Localnet IRC Network " + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1\r\n";
-			send(client.getFd(), rep.c_str(), rep.size(), 0);
+		client.setNickname(newNick);
+		LOG_USER_INFO(oldNick) << "Changed nickname to " << newNick;
+		std::string nickMsg = ":" + oldNick + "!" + client.getUser().username + "@127.0.0.1 NICK :" + newNick + "\r\n";
+		std::set<int> notifiedFds;
+		notifiedFds.insert(client.getFd());
+		send(client.getFd(), nickMsg.c_str(), nickMsg.size(), 0);
+		std::map<std::string, Channel*>::iterator it = _channels.begin();
+		for (; it != _channels.end(); ++it) {
+			Channel *c = it->second;
+			if (c->hasMember(client.getFd())) {
+				std::map<int, Client*> members = c->getMembers();
+				for (std::map<int, Client*>::iterator mIt = members.begin(); mIt != members.end(); ++mIt) {
+					int targetFd = mIt->first;
+					if (notifiedFds.find(targetFd) == notifiedFds.end()) {
+						send(targetFd, nickMsg.c_str(), nickMsg.size(), 0);
+						notifiedFds.insert(targetFd);
+					}
+				}
+			}
 		}
 	}
 	else {
-		std::string old_nick = client.getNickname();
-		std::string nickname = args[0];
-	
-		if (parseNickname(nickname) == 0)
-		{
-			safe_send(client, ":127.0.0.1 432 " + nick + " NICK :Erroneous nickname\r\n");
-			return (0);
+		client.setNickname(newNick);
+		SETHASNICKNAME(client.getIsLogged());
+		LOG_USER_INFO(newNick) << "Nickname set for registration.";
+		if (ISLOGGED(client.getIsLogged())) {
+			std::string rep = ":127.0.0.1 001 " + client.getNickname() 
+				+ " :Welcome to the Localnet IRC Network " 
+				+ client.getNickname() + "!" + client.getUser().username + "@127.0.0.1\r\n";
+			safe_send(client, rep);
 		}
-		if (findUser(nickname) != -1)
-		{
-			LOG_USER_INFO(nickname) << "Already used";
-			safe_send(client, ":127.0.0.1 433 " + nick + nickname + " NICK :Nickname is already in use\r\n");
-			return (0);
-		}
-		client.setNickname(nickname);
-		LOG_USER_INFO(client.getNickname()) << "Nickname updated.";
-		msg = ":" + old_nick + "!" + client.getUser().username + "@127.0.0.1 NICK :" + nickname + "\r\n";
-		send(client.getFd(), msg.c_str(), msg.size(), 0);
-	}	
+	}
 	return (0);
 }
 
@@ -359,31 +360,34 @@ int Server::quit(Client &client, std::vector<int> &fdsToClose, std::vector<std::
 
 int Server::user(Client &client, std::vector<std::string> &args)
 {
-	
-	if (ISLOGGED(client.getIsLogged())) {
-		std::string rep = "462 " + client.getNickname() + " :Unauthorized command (already registered)";
-		send(client.getFd(), rep.c_str(), rep.size(), 0);
-        LOG_USER_ERR(client.getNickname()) << "Tried to register twice.";
+	std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
+
+	if (HASUSER(client.getIsLogged())) {
+		safe_send(client, ":127.0.0.1 462 " + nick + " :Unauthorized command (already registered)\r\n");
+		LOG_USER_ERR(nick) << "Tried to run USER twice.";
 		return (-1);
-    }
-	if  (args.size() != 4) {
-		std::string rep = "461 " + (client.getNickname().empty() ? "*" : client.getNickname()) + " USER :Not enough parameters";
-		send(client.getFd(), rep.c_str(), rep.size(), 0);
-        return (-1);
-    }
+	}
 
+	if (args.size() < 4) {
+		safe_send(client, ":127.0.0.1 461 " + nick + " USER :Not enough parameters\r\n");
+		return (-1);
+	}
 
-	t_user	user;
+	t_user user;
 	user.username = args[0];
 	user.realname = args[3];
 	client.setUser(user);
 
-	LOG_USER_INFO(client.getNickname()) << "User updated.";
 	SETHASUSER(client.getIsLogged());
+	LOG_USER_INFO(nick) << "User details updated.";
+
 	if (ISLOGGED(client.getIsLogged())) {
-		std::string rep = ":server_name 001 " + client.getNickname() + " :Welcome to the Localnet IRC Network " + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1\r\n";
-		send(client.getFd(), rep.c_str(), rep.size(), 0);
+		std::string welcome = ":127.0.0.1 001 " + client.getNickname() 
+			+ " :Welcome to the Localnet IRC Network " 
+			+ client.getNickname() + "!" + client.getUser().username + "@127.0.0.1\r\n";
+		safe_send(client, welcome);
 	}
+
 	return (0);
 }
 

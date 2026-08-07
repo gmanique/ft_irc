@@ -55,10 +55,6 @@ class Channel {
 		void	removeOperator(int fd);
 		uint8_t	isOperator(int fd) const;
 
-		/*
-		// Diffusion de message à tout le salon (optionnel: sauf senderFd)
-		void	broadcast(const std::string &message, int excludeFd = -1);
-		*/
 };
 
 #endif

@@ -1,11 +1,8 @@
 Commandes :
 
-- CAP (good)
-- PASS (good)
-- USER (good)
-- PING/PONG (good)
-- MODE
-- QUIT
+- CAP (good?)
+- PASS (good?)
+- USER (good?)
+- PING/PONG (good?)
 - OPER (?)
 
-- TOPIC

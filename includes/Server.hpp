@@ -58,6 +58,7 @@ class Server {
 		void								deleteChannel(std::string &name);
 		
 		int									findUser(std::string &username);
+		int									parseNickname(std::string &nickname);
 		
 		int									init();
 		int									run();

@@ -681,6 +681,42 @@ int Server::do_invite(Client &client, std::vector<std::string> &args) {
 	return (SUCCESS);
 }
 
+int Server::do_part(Client &client, std::vector<std::string> &args) {
+	std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
+	if (args.empty()) {
+		safe_send(client, ":127.0.0.1 461 " + nick + " PART :Not enough parameters\r\n");
+		return (-1);
+	}
+	std::string channelName = args[0];
+	Channel *c = getChannel(channelName);
+	if (!c) {
+		safe_send(client, ":127.0.0.1 403 " + nick + " " + channelName + " :No such channel\r\n");
+		return (-1);
+	}
+	if (!c->hasMember(client.getFd())) {
+		safe_send(client, ":127.0.0.1 442 " + nick + " " + channelName + " :You're not on that channel\r\n");
+		return (-1);
+	}
+	std::string reason = "";
+	if (args.size() > 1) {
+		for (size_t i = 1; i < args.size(); ++i) {
+			reason += args[i];
+			if (i < args.size() - 1)
+				reason += " ";
+		}
+	} else {
+		reason = nick;
+	}
+	std::string partMsg = ":" + nick + "!" + client.getUser().username + "@127.0.0.1 PART " + channelName + " :" + reason + "\r\n";
+	std::map<int, Client*> members = c->getMembers();
+	for (std::map<int, Client*>::iterator it = members.begin(); it != members.end(); ++it) {
+		send(it->first, partMsg.c_str(), partMsg.size(), 0);
+	}
+	unlinkClientFromChannel(&client, channelName);
+	return (SUCCESS);
+}
+
+
 int	Server::executeCommand(Client &client, std::string &command, std::vector<int> &fdsToClose)
 {
 	std::string cmd = "";
@@ -714,6 +750,9 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 		do_mode(client, args);
 	else if (cmd == "INVITE") {
 		do_invite(client, args);
+	}
+	else if (cmd == "PART") {
+		do_part(client, args);
 	}
 	else if (cmd == "QUIT")
 		quit(client, fdsToClose, args);

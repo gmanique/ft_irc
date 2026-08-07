@@ -40,6 +40,7 @@ class Server {
 		void								ping_pong(Client &client, std::vector<std::string> &args);
 		void								do_msg(Client &client, std::vector<std::string> &args);
 		void								do_mode(Client &client, std::vector<std::string> &args);
+		int									do_part(Client &client, std::vector<std::string> &args);
 		int									quit(Client &client, std::vector<int> &fdsToClose, std::vector<std::string> &args);
 
 		int									do_invite(Client &client, std::vector<std::string> &args);

@@ -6,7 +6,7 @@ uint8_t isValidPort(char *arg) {
 		return (0);
     for (size_t i = 0; i < str.length(); ++i) {
         if (!std::isdigit(str[i]))
-            return false;
+            return (0);
     }
     int port = std::atoi(str.c_str());
     return (port >= 1024 && port <= 65535);

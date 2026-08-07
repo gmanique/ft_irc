@@ -320,22 +320,41 @@ int Server::nickname(Client &client, std::vector<std::string> &args)
 
 int Server::quit(Client &client, std::vector<int> &fdsToClose, std::vector<std::string> &args)
 {
-	if (args.size() == 0) {
-		LOG_USER_INFO(client.getNickname()) << "Disconnected";
-		fdsToClose.push_back(client.getFd());
-		return (0);
-	}
-	else {
-		std::string reason = "";
-		for(size_t i = 0; i < args.size(); i++) {
+	std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
+	std::string reason = "Client Quit";
+
+	if (!args.empty()) {
+		reason = "";
+		for (size_t i = 0; i < args.size(); ++i) {
 			reason += args[i];
 			if (i < args.size() - 1)
 				reason += " ";
 		}
-		fdsToClose.push_back(client.getFd());
-		LOG_USER_INFO(client.getNickname()) << "Disconnected because " << reason;
 	}
-	return (0);
+	std::string errMsg = "ERROR :Closing Link: " + nick + " (Quit: " + reason + ")\r\n";
+	send(client.getFd(), errMsg.c_str(), errMsg.size(), 0);
+
+	std::string quitMsg = ":" + nick + "!" + client.getUser().username + "@127.0.0.1 QUIT :" + reason + "\r\n";
+	std::set<int> notifiedFds;
+	std::map<std::string, Channel*>::iterator it = _channels.begin();
+	for (; it != _channels.end(); ++it) {
+		Channel *c = it->second;
+		if (c->hasMember(client.getFd())) {
+			std::map<int, Client*> members = c->getMembers();
+			for (std::map<int, Client*>::iterator mIt = members.begin(); mIt != members.end(); ++mIt) {
+				int targetFd = mIt->first;
+				if (targetFd != client.getFd() && notifiedFds.find(targetFd) == notifiedFds.end()) {
+					send(targetFd, quitMsg.c_str(), quitMsg.size(), 0);
+					notifiedFds.insert(targetFd);
+				}
+			}
+		}
+	}
+
+	LOG_USER_INFO(nick) << "Disconnected because: " << reason;
+	fdsToClose.push_back(client.getFd());
+
+	return (SUCCESS);
 }
 
 int Server::user(Client &client, std::vector<std::string> &args)
@@ -860,6 +879,7 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 		user(client, args);
 	}
 	else if (!ISLOGGED(client.getIsLogged())) {
+		safe_send(client, ":127.0.0.1 451 * :You have not registered\r\n", "Client not logged");
 		LOG_ERR << "Please connect before anything.";
 		return (-1);
 	}

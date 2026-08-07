@@ -235,43 +235,50 @@ int	Server::checker_password(Client &client,std::vector<int> &fdsToClose, std::v
 
 int Server::parseNickname(std::string &nickname)
 {
-	int i = 0;
-	if (isdigit(nickname[0]))
-	{
+	if (nickname.size() > 9 || !std::isalpha(nickname[0])) {
 		LOG_USER_INFO(nickname) << "Invalid nickname";
 		return (0);
 	}
-	while (nickname[i])
-	{
-		if (nickname[i] != '[' &&
-			nickname[i] != ']' &&
-			nickname[i] != '{' &&
-			nickname[i] != '}' &&
-			nickname[i] != '\\' &&
-			nickname[i] != '|' &&
-			!(isalnum(nickname[i])))
-		{
-			LOG_USER_INFO(nickname) << "Invalid nickname";
-			return (0);
-		}
-		i++;
+	std::string allowed_chars = "[]{}\\|-_^abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+	size_t index = nickname.find_first_not_of(allowed_chars);
+	if (index != std::string::npos){
+		LOG_USER_INFO(nickname) << "Invalid nickname";
+		return (0);
 	}
 	return (1);
 }
 
 int Server::nickname(Client &client, std::vector<std::string> &args)
 {
+	std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
 	std::string msg = "";
 	if (args.size() == 0) {
-		// gerer l'erreur
+		safe_send(client, ":127.0.0.1 431 " + nick + " NICK :No nickname given\r\n");
 		return (-1);
 	}
 	if (args[0].empty()) {
-		// gerer l'erreur
+		safe_send(client, ":127.0.0.1 431 " + nick + " NICK :No nickname given\r\n");
 		return (-1);
 	}
 	if (!HASNICKNAME(client.getIsLogged())) {
 		std::string nickname = args[0];
+		std::string old_nick = client.getNickname();
+	
+		if (parseNickname(nickname) == 0)
+		{
+			safe_send(client, ":127.0.0.1 432 " + nick + " NICK :Erroneous nickname\r\n");
+			return (0);
+		}
+		if (findUser(nickname) != -1)
+		{
+			safe_send(client, ":127.0.0.1 433 " + nick + nickname + " NICK :Nickname is already in use\r\n");
+			LOG_USER_INFO(nickname) << "Already used";
+			return (0);
+		}
+		client.setNickname(nickname);
+		LOG_USER_INFO(client.getNickname()) << "Nickname updated.";
+		msg = ":" + old_nick + "!" + client.getUser().username + "@127.0.0.1 NICK :" + nickname + "\r\n";
+		send(client.getFd(), msg.c_str(), msg.size(), 0);
 		LOG_USER_INFO(client.getNickname()) << "Nickname created.";
 		SETHASNICKNAME(client.getIsLogged());
 		if (ISLOGGED(client.getIsLogged())) {
@@ -284,10 +291,14 @@ int Server::nickname(Client &client, std::vector<std::string> &args)
 		std::string nickname = args[0];
 	
 		if (parseNickname(nickname) == 0)
+		{
+			safe_send(client, ":127.0.0.1 432 " + nick + " NICK :Erroneous nickname\r\n");
 			return (0);
+		}
 		if (findUser(nickname) != -1)
 		{
 			LOG_USER_INFO(nickname) << "Already used";
+			safe_send(client, ":127.0.0.1 433 " + nick + nickname + " NICK :Nickname is already in use\r\n");
 			return (0);
 		}
 		client.setNickname(nickname);
@@ -348,36 +359,6 @@ int Server::user(Client &client, std::vector<std::string> &args)
 	return (0);
 }
 
-void	Server::unlinkClientFromChannel(Client *client, std::string &channel_name) {
- 	Channel *c = getChannel(channel_name);
- 	if (!c)
- 		return ;
- 	if (!c->hasMember(client->getFd()))
- 		return ;
- 	c->removeMember(client->getFd());
- 	if (c->getMembers().empty()) {
- 		deleteChannel(channel_name);
- 		delete(c);
-	}
-}
-
-// return : 0 = a rejoint, 1 : etait deja dedans
-int	Server::linkClientToChannel(Client *client, std::string &channel_name) {
-	Channel *c = getChannel(channel_name);
-	if (!c) {
-		LOG_INFO << "creating channel `" << channel_name << "`.";
-		c = new Channel(channel_name); // Deja gere par le try catch du main
-		addChannel(c);
-		LOG_USER_INFO(channel_name) << " Channel created.";
-	}
-	if (!c->hasMember(client->getFd())) {
-		c->addMember(client);
-		LOG_USER_INFO(client->getNickname()) << " added to channel " << channel_name << ".";
-		return (0);
-	}
-	LOG_USER_INFO(client->getNickname()) << " already part of channel " << channel_name << ".";
-	return (1);
-}
 
 int Server::do_join(Client &client, std::vector<std::string> &args) {
 	std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
@@ -704,21 +685,17 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 {
 	std::string cmd = "";
 	std::vector<std::string> args;
-	std::set<std::string> nicknames;
 	parseCommand(command, cmd, args);
 	if (cmd == "CAP")
 		Server::do_cap(client, args);
-	else if (cmd == "PASS")
-	{
+	else if (cmd == "PASS") {
 		if (checker_password(client, fdsToClose, args) == -1)
 			return (-1);
 	}
-	else if (cmd == "NICK")
-	{
+	else if (cmd == "NICK") {
 		nickname(client, args);
 	}
-	else if (cmd == "USER")
-	{
+	else if (cmd == "USER") {
 		user(client, args);
 	}
 	else if (!ISLOGGED(client.getIsLogged())) {

@@ -1,5 +1,4 @@
 Commandes :
 
-- CAP (good?)
 - OPER (?)
 

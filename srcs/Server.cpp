@@ -876,6 +876,12 @@ int	Server::executeCommand(Client &client, std::string &command, std::vector<int
 	else if (cmd == "INVITE") {
 		do_invite(client, args);
 	}
+	else if (cmd == "TOPIC") {
+		do_topic(client, args);
+	}
+	else if (cmd == "KICK") {
+		do_kick(client, args);
+	}
 	else if (cmd == "PART") {
 		do_part(client, args);
 	}

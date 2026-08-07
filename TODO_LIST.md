@@ -7,5 +7,5 @@ Commandes :
 - MODE
 - QUIT
 - OPER (?)
-- KICK
+
 - TOPIC

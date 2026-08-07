@@ -800,7 +800,6 @@ void	Server::handleClientData(int clientFd, std::vector<int> &fdsToClose) {
 
 	std::string command;
 	while (client.extractCommand(command)) {
-		
 		DEBUG(LOG_USER_INFO(client.getNickname()) << "Command received from client " << clientFd << " : " << command;);
 		if (executeCommand(client, command, fdsToClose) == -1)
 			return;

@@ -1,14 +1,5 @@
 #include "ft_irc.hpp"
 
-int ft_strlen(const char *s)
-{
-    const char *p = s;
-    if (!s) return 0;
-    while (*p++) ;
-    return (size_t)(p - s - 1);
-}
-
-
 uint8_t isValidPort(char *arg) {
 	const std::string str(arg);
 	if (str.length() > 5 || str.length() == 0)

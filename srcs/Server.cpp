@@ -743,6 +743,59 @@ int Server::do_part(Client &client, std::vector<std::string> &args) {
 	return (SUCCESS);
 }
 
+int Server::do_kick(Client &client, std::vector<std::string> &args) {
+	std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
+	if (args.size() < 2) {
+		safe_send(client, ":127.0.0.1 461 " + nick + " KICK :Not enough parameters\r\n");
+		return (USAGE_ERROR);
+	}
+	std::string channelName = args[0];
+	Channel *c = getChannel(channelName);
+	
+	if (!c) {
+		safe_send(client, ":127.0.0.1 403 " + nick + " " + channelName + " :No such channel\r\n");
+		return (USAGE_ERROR);
+	}
+	int	dest = findUser(args[1]);
+	if (dest == -1) {
+		safe_send(client, ":127.0.0.1 401 " + nick + " " + args[1] + " :No such nick/channel\r\n");
+		return (USAGE_ERROR);
+	}
+	if (!c->hasMember(client.getFd())) {
+		safe_send(client, ":127.0.0.1 442 " + nick + " " + channelName + " :You're not on that channel\r\n");
+		return (USAGE_ERROR);
+	}
+	if (!c->isOperator(client.getFd())) {
+		LOG_USER_ERR(client.getNickname()) << "You must be operator to invite someone.";
+		std::string msg = ":127.0.0.1 482 " + nick + " " + channelName + " :You're not channel operator\r\n";
+		send(client.getFd(), msg.c_str(), msg.size(), 0);
+		return (USAGE_ERROR);
+	}
+	if (!c->hasMember(dest)) {
+		safe_send(client, ":127.0.0.1 441 " + nick + " " + args[1] + " " + channelName + " :They aren't on that channel\r\n");
+		return (USAGE_ERROR);
+	}
+	std::string reason = "";
+	if (args.size() > 2) {
+		for (size_t i = 2; i < args.size(); ++i) {
+			reason += args[i];
+			if (i < args.size() - 1)
+				reason += " ";
+		}
+	} else {
+		reason = nick;
+	}
+	std::string kickMsg = ":" + nick + "!" + client.getUser().username + "@127.0.0.1 KICK " + channelName + " " + args[1] + " :" + reason + "\r\n";
+
+	std::map<int, Client*> members = c->getMembers();
+	for (std::map<int, Client*>::iterator it = members.begin(); it != members.end(); ++it) {
+		send(it->first, kickMsg.c_str(), kickMsg.size(), 0);
+	}
+	Client *cDest = c->getMember(dest);
+	unlinkClientFromChannel(cDest, channelName);
+	return (SUCCESS);
+}
+
 
 int	Server::executeCommand(Client &client, std::string &command, std::vector<int> &fdsToClose)
 {

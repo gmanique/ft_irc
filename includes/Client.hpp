@@ -6,19 +6,21 @@
 # define PASSWORD_FLAG 	(1<<0)
 # define NICKNAME_FLAG 	(1<<1)
 # define USER_FLAG 		(1<<2)
+# define CAP_FLAG 		(1<<3)
 
 # define HASPASSWORD(val) ((val & PASSWORD_FLAG) > 0)
 # define SETHASPASSWORD(val) (val |= PASSWORD_FLAG)
 
+# define HASCAP(val) ((val & CAP_FLAG) > 0)
+# define SETHASCAP(val) (val |= CAP_FLAG)
+
 # define HASNICKNAME(val) ((val & NICKNAME_FLAG) > 0)
 # define SETHASNICKNAME(val) (val |= NICKNAME_FLAG)
-
 
 # define HASUSER(val) ((val & USER_FLAG) > 0)
 # define SETHASUSER(val) (val |= USER_FLAG)
 
-// # define ISLOGGED(val) (val == 7)
-# define ISLOGGED(val) (HASUSER(val) && HASNICKNAME(val) && HASPASSWORD(val))
+# define ISLOGGED(val) (HASUSER(val) && HASNICKNAME(val) && HASPASSWORD(val) && HASCAP(val))
 
 typedef struct s_user {
 	std::string username;

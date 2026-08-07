@@ -183,6 +183,7 @@ void parseCommand(const std::string &line, std::string &command, std::vector<std
 void	Server::do_cap(Client &client, std::vector<std::string> &args) {
 	if (args.size() == 2 && args[0] == "LS" && args[1] == "302") {
 		LOG_DEBUG << "Sending to client " << client.getFd() << " : " << "CAP * LS :\\r\\n"; 
+		SETHASCAP(client.getIsLogged());
 		if (send(client.getFd(), "CAP * LS :\r\n", 12, 0) < 0)
 		{
 			LOG_ERR << "Send failed";

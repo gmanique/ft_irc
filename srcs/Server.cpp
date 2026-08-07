@@ -796,6 +796,51 @@ int Server::do_kick(Client &client, std::vector<std::string> &args) {
 	return (SUCCESS);
 }
 
+int	Server::do_topic(Client &client, std::vector<std::string> &args) {
+std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
+	if (args.empty()) {
+		safe_send(client, ":127.0.0.1 461 " + nick + " TOPIC :Not enough parameters\r\n");
+		return (USAGE_ERROR);
+	}
+	std::string channelName = args[0];
+	Channel *c = getChannel(channelName);
+	if (!c) {
+		safe_send(client, ":127.0.0.1 403 " + nick + " " + channelName + " :No such channel\r\n");
+		return (USAGE_ERROR);
+	}
+	if (!c->hasMember(client.getFd())) {
+		safe_send(client, ":127.0.0.1 442 " + nick + " " + channelName + " :You're not on that channel\r\n");
+		return (USAGE_ERROR);
+	}
+	if (args.size() == 1) {
+		std::string topic = c->getTopic();
+		if (topic.empty()){
+			safe_send(client, ":127.0.0.1 331 " + nick + " " + channelName + " :No topic is set\r\n");
+		}
+		else {
+			safe_send(client, ":127.0.0.1 332 " + nick + " " + channelName + " :" + c->getTopic() + "\r\n");
+		}
+		return (SUCCESS);
+	}
+	if (c->getTopicOpOnly() && !c->isOperator(client.getFd())) {
+		safe_send(client, ":127.0.0.1 482 " + nick + " " + channelName + " :You're not channel operator\r\n");
+		return (USAGE_ERROR);
+	}
+	std::string newTopic = "";
+	for(size_t i = 1; i < args.size(); i++) {
+		newTopic += args[i];
+		if (i < args.size()-1) {
+			newTopic += " ";
+		}
+	}
+	c->setTopic(newTopic);
+	std::string topMsg = ":" + nick + "!" + client.getUser().username + "@127.0.0.1 TOPIC " + channelName + " :" + newTopic + "\r\n"; 
+	std::map<int, Client*> members = c->getMembers();
+	for (std::map<int, Client*>::iterator it = members.begin(); it != members.end(); ++it) {
+		send(it->first, topMsg.c_str(), topMsg.size(), 0);
+	}
+	return (SUCCESS);
+}
 
 int	Server::executeCommand(Client &client, std::string &command, std::vector<int> &fdsToClose)
 {

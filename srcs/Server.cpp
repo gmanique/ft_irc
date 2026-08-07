@@ -212,33 +212,33 @@ void	Server::ping_pong(Client &client, std::vector<std::string> &args) {
 
 int	Server::checker_password(Client &client,std::vector<int> &fdsToClose, std::vector<std::string> &args)
 {
+	std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
+
 	if (HASPASSWORD(client.getIsLogged())) {
-		LOG_INFO << "You already logged in";
-		return (0);
-	}
-	if (args.size() != 1)
-		return (-1);//probleme
-	
-	if (args[0] == _password) {
-		LOG_INFO << "Password is correct";
-		SETHASPASSWORD(client.getIsLogged());
-		if (ISLOGGED(client.getIsLogged())) {
-			std::string rep = ":server_name 001 " + client.getNickname() + " :Welcome to the Localnet IRC Network " + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1\r\n";
-			send(client.getFd(), rep.c_str(), rep.size(), 0);
-		}
-	}
-	else
-	{
-		LOG_DEBUG << "Sending to client " << client.getFd() << " : " << ":127.0.0.1 464 * :Password incorrect";
-		fdsToClose.push_back(client.getFd());
-		if (send(client.getFd(), ":127.0.0.1 464 * :Password incorrect\r\n", 38, 0) < 0)
-		{
-			LOG_ERR << "Send failed";
-			return (-1);
-		}
-		LOG_INFO << "Password is incorrect";
+		safe_send(client, ":127.0.0.1 462 " + nick + " :Unauthorized command (already registered)\r\n");
 		return (-1);
 	}
+
+	if (args.empty()) {
+		safe_send(client, ":127.0.0.1 461 " + nick + " PASS :Not enough parameters\r\n");
+		return (-1);
+	}
+
+	if (args[0] != _password) {
+		LOG_USER_INFO(client.getNickname()) << "Password is incorrect for client " << client.getFd();
+		safe_send(client, ":127.0.0.1 464 " + nick + " :Password incorrect\r\n");
+		fdsToClose.push_back(client.getFd());
+		return (-1);
+	}
+
+	LOG_USER_INFO(client.getNickname()) << "Password is correct for client " << client.getFd();
+	SETHASPASSWORD(client.getIsLogged());
+
+	if (ISLOGGED(client.getIsLogged())) {
+		std::string rep = ":127.0.0.1 001 " + client.getNickname() + " :Welcome to the Localnet IRC Network " + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1\r\n";
+		safe_send(client, rep);
+	}
+
 	return (0);
 }
 

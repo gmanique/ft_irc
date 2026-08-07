@@ -17,6 +17,14 @@ Server::Server(int port, const std::string &password) : _port(port), _password(p
 Server::~Server() {
 	if (_serverFd != -1)
 		close(_serverFd);
+	for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
+		close(it->first);
+	}
+	_clients.clear();
+	for (std::map<std::string, Channel *>::iterator it = _channels.begin(); it != _channels.end(); ++it) {
+		delete it->second;
+	}
+	_channels.clear();
 	DEBUG(LOG_TRACE << "[SERVER] Destroying struct.";);
 }		
 void	Server::setPort(int port) {

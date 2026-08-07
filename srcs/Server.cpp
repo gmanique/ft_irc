@@ -188,17 +188,31 @@ void parseCommand(const std::string &line, std::string &command, std::vector<std
     }
 }
 
-void	Server::do_cap(Client &client, std::vector<std::string> &args) {
-	if (args.size() == 2 && args[0] == "LS" && args[1] == "302") {
-		LOG_DEBUG << "Sending to client " << client.getFd() << " : " << "CAP * LS :\\r\\n"; 
+
+void Server::do_cap(Client &client, std::vector<std::string> &args) {
+	if (args.empty())
+		return;
+
+	if (HASCAP(client.getIsLogged())) {
+		return ;
+	}
+
+	if (args[0] == "LS") {
+		safe_send(client, "CAP * LS :\r\n");
+	}
+	else if (args[0] == "END") {
 		SETHASCAP(client.getIsLogged());
-		if (send(client.getFd(), "CAP * LS :\r\n", 12, 0) < 0)
-		{
-			LOG_ERR << "Send failed";
-			return ;
+		DEBUG(LOG_DEBUG << "CAP negotiation ended for client " << client.getFd(););
+		if (ISLOGGED(client.getIsLogged())) {
+			std::string rep = ":127.0.0.1 001 " + client.getNickname() + " :Welcome to the Localnet IRC Network " + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1\r\n";
+			safe_send(client, rep);
 		}
 	}
+	else if (args[0] == "REQ") {
+		safe_send(client, "CAP * NAK :" + (args.size() > 1 ? args[1] : "") + "\r\n");
+	}
 }
+
 
 void Server::ping_pong(Client &client, std::vector<std::string> &args) {
 	std::string nick = client.getNickname().empty() ? "*" : client.getNickname();

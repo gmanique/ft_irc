@@ -233,6 +233,32 @@ int	Server::checker_password(Client &client,std::vector<int> &fdsToClose, std::v
 	return (0);
 }
 
+int Server::parseNickname(std::string &nickname)
+{
+	int i = 0;
+	if (isdigit(nickname[0]))
+	{
+		LOG_USER_INFO(nickname) << "Invalid nickname";
+		return (0);
+	}
+	while (nickname[i])
+	{
+		if (nickname[i] != '[' &&
+			nickname[i] != ']' &&
+			nickname[i] != '{' &&
+			nickname[i] != '}' &&
+			nickname[i] != '\\' &&
+			nickname[i] != '|' &&
+			!(isalnum(nickname[i])))
+		{
+			LOG_USER_INFO(nickname) << "Invalid nickname";
+			return (0);
+		}
+		i++;
+	}
+	return (1);
+}
+
 int Server::nickname(Client &client, std::vector<std::string> &args)
 {
 	std::string msg = "";
@@ -257,27 +283,8 @@ int Server::nickname(Client &client, std::vector<std::string> &args)
 		std::string old_nick = client.getNickname();
 		std::string nickname = args[0];
 	
-		if (isdigit(nickname[0]))
-		{
-			LOG_USER_INFO(nickname) << "Invalid nickname";
+		if (parseNickname(nickname) == 0)
 			return (0);
-		}
-		int i = 0;
-		while (nickname[i])
-		{
-			if (nickname[i] != '[' &&
-				nickname[i] != ']' &&
-				nickname[i] != '{' &&
-				nickname[i] != '}' &&
-				nickname[i] != '\\' &&
-				nickname[i] != '|' &&
-				!(isalnum(nickname[i])))
-			{
-				LOG_USER_INFO(nickname) << "Invalid nickname";
-				return (0);
-			}
-			i++;
-		}
 		if (findUser(nickname) != -1)
 		{
 			LOG_USER_INFO(nickname) << "Already used";
@@ -287,8 +294,7 @@ int Server::nickname(Client &client, std::vector<std::string> &args)
 		LOG_USER_INFO(client.getNickname()) << "Nickname updated.";
 		msg = ":" + old_nick + "!" + client.getUser().username + "@127.0.0.1 NICK :" + nickname + "\r\n";
 		send(client.getFd(), msg.c_str(), msg.size(), 0);
-	}
-	
+	}	
 	return (0);
 }
 

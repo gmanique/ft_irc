@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: lupan <lupan@student.42.fr>                +#+  +:+       +#+         #
+#    By: luc <luc@student.42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/02/16 03:08:31 by gmanique          #+#    #+#              #
-#    Updated: 2026/08/03 14:45:56 by lupan            ###   ########.fr        #
+#    Updated: 2026/08/08 19:53:51 by luc              ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -45,7 +45,6 @@ SRC = $(addprefix $(SRC_DIR)/, $(BASE_SRC))
 # Objects et dependances
 OBJ = $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 DEPS = $(OBJ:.o=.d)
-
 
 # For progress bar
 SRC_COUNT := $(words $(SRC))

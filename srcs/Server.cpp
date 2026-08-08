@@ -333,6 +333,7 @@ int Server::nickname(Client &client, std::vector<std::string> &args)
 	return (0);
 }
 
+
 int Server::quit(Client &client, std::vector<int> &fdsToClose, std::vector<std::string> &args)
 {
 	std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
@@ -351,10 +352,14 @@ int Server::quit(Client &client, std::vector<int> &fdsToClose, std::vector<std::
 
 	std::string quitMsg = ":" + nick + "!" + client.getUser().username + "@127.0.0.1 QUIT :" + reason + "\r\n";
 	std::set<int> notifiedFds;
+	std::vector<std::string> channelsToUnlink;
+
 	std::map<std::string, Channel*>::iterator it = _channels.begin();
 	for (; it != _channels.end(); ++it) {
 		Channel *c = it->second;
 		if (c->hasMember(client.getFd())) {
+			channelsToUnlink.push_back(it->first);
+            
 			std::map<int, Client*> members = c->getMembers();
 			for (std::map<int, Client*>::iterator mIt = members.begin(); mIt != members.end(); ++mIt) {
 				int targetFd = mIt->first;
@@ -364,6 +369,10 @@ int Server::quit(Client &client, std::vector<int> &fdsToClose, std::vector<std::
 				}
 			}
 		}
+	}
+
+	for (size_t i = 0; i < channelsToUnlink.size(); ++i) {
+        unlinkClientFromChannel(&client, channelsToUnlink[i]);
 	}
 
 	LOG_USER_INFO(nick) << "Disconnected because: " << reason;
@@ -567,7 +576,7 @@ void	Server::do_mode(Client &client, std::vector<std::string> &args)
 		safe_send(client, ":127.0.0.1 451 * :You have not registered\r\n", "Client not logged");
 		return;
 	}
-	if (args.size() < 2)
+	if (args.empty())
 	{
 		safe_send(client, ":127.0.0.1 461 " + client.getNickname() + " MODE :Not enough parameters\r\n", "Mode: not enough parameters");
 		return ;
@@ -578,31 +587,44 @@ void	Server::do_mode(Client &client, std::vector<std::string> &args)
 		return ;
 	}
 	
-
 	std::string channelName = args[0];
-	std::string modeString = args[1];
 	Channel 	*channel = getChannel(channelName);
 	if (!channel) {
-		safe_send(client, "127.0.0.1 403 " + client.getNickname() + " " + channelName + " :No such channel\r\n", channelName + " : no such channel");
+		safe_send(client, ":127.0.0.1 403 " + client.getNickname() + " " + channelName + " :No such channel\r\n", channelName + " : no such channel");
 		return;
 	}
+	if (args.size() == 1) {
+		std::string modeStr = "+";
+		std::string params = "";
+		if (channel->getInviteOnly()) modeStr += "i";
+		if (channel->getTopicOpOnly()) modeStr += "t";
+		if (!channel->getKey().empty()) {
+			modeStr += "k";
+			params += " " + channel->getKey();
+		}
+		if (channel->getUserLimit() > 0) {
+			modeStr += "l";
+			std::ostringstream oss;
+			oss << channel->getUserLimit();
+			params += " " + oss.str();
+		}
+		safe_send(client, ":127.0.0.1 324 " + client.getNickname() + " " + channelName + " " + modeStr + params + "\r\n");
+		return;
+	}
+
 	if (!channel->hasMember(client.getFd())) {
-		safe_send(client, "127.0.0.1 442 " + client.getNickname() + " " + channelName + " :You're not on that channel\r\n", client.getNickname() + " : not on channel " + channelName);
+		safe_send(client, ":127.0.0.1 442 " + client.getNickname() + " " + channelName + " :You're not on that channel\r\n", client.getNickname() + " : not on channel " + channelName);
 		return;
 	}
 	if (!channel->isOperator(client.getFd())) {
-		safe_send(client, "127.0.0.1 482 " + client.getNickname() + " " + channelName + " :You're not channel operator\r\n", client.getNickname() + " : is not operator on channel " + channelName);
+		safe_send(client, ":127.0.0.1 482 " + client.getNickname() + " " + channelName + " :You're not channel operator\r\n", client.getNickname() + " : is not operator on channel " + channelName);
 		return;
 	}
-
+	std::string modeString = args[1];
 	size_t	args_i = 1;
-	char 	sign;
+	char 	sign = '+';
 	if (modeString[0] == '+' || modeString[0] == '-')
 		sign = modeString[0];
-	else {
-		LOG_ERR << "Mode: invalid modestring";
-		return;
-	}
 
 	for (size_t i = 1; i < modeString.size(); i++) {
 		char c = modeString[i];
@@ -623,19 +645,19 @@ void	Server::do_mode(Client &client, std::vector<std::string> &args)
 				if (sign == '-')
 					channel->removeKey();
 				else if (++args_i >= args.size())
-					safe_send(client, "127.0.0.1 461 " + client.getNickname() + " MODE :Not enough parameters\r\n", "Mode: setKey: missing argument");
+					safe_send(client, ":127.0.0.1 461 " + client.getNickname() + " MODE :Not enough parameters\r\n", "Mode: setKey: missing argument");
 				else
 					channel->setKey(args[args_i]);
 				break;
 			}
 			case 'o': {
 				if (++args_i >= args.size()) {
-					safe_send(client, "127.0.0.1 461 " + client.getNickname() + " MODE :Not enough parameters\r\n", "Mode: addOp/removeOp: missing argument");
+					safe_send(client, ":127.0.0.1 461 " + client.getNickname() + " MODE :Not enough parameters\r\n", "Mode: addOp/removeOp: missing argument");
 					break;
 				}
 				int client_fd = findUser(args[args_i]);
-				if (client_fd == -1) {
-					safe_send(client, "127.0.0.1 441 " + client.getNickname() + " " + channelName + " :They aren't on that channel\r\n", "Mode: addOp/removeOp: bad argument");
+				if (client_fd == -1 || !channel->hasMember(client_fd)) {
+					safe_send(client, ":127.0.0.1 441 " + client.getNickname() + " " + channelName + " :They aren't on that channel\r\n", "Mode: addOp/removeOp: bad argument");
 					break;
 				}
 				if (sign == '+')
@@ -649,7 +671,7 @@ void	Server::do_mode(Client &client, std::vector<std::string> &args)
 					channel->setUserLimit(0);
 				else {
 					if (++args_i >= args.size()) {
-						safe_send(client, "127.0.0.1 461 " + client.getNickname() + " MODE :Not enough parameters\r\n", "Mode: setUserLimit: missing argument");
+						safe_send(client, ":127.0.0.1 461 " + client.getNickname() + " MODE :Not enough parameters\r\n", "Mode: setUserLimit: missing argument");
 						break;
 					}
 					std::istringstream iss(args[args_i]);
@@ -664,12 +686,12 @@ void	Server::do_mode(Client &client, std::vector<std::string> &args)
 				break;
 			}
 			default: {
-				safe_send(client, "127.0.0.1 472 " + client.getNickname() + " " + std::string(1, c) + " :is unknown mode char to me\r\n", "Mode: unknown argument \'" + std::string(1, c) + "\' in modestring");
+				safe_send(client, ":127.0.0.1 472 " + client.getNickname() + " " + std::string(1, c) + " :is unknown mode char to me\r\n", "Mode: unknown argument \'" + std::string(1, c) + "\' in modestring");
 				break;
 			}
 		}
 	}
-	std::string str = client.getNickname() + "!" + client.getUser().username + "@127.0.0.1 MODE " + channelName + " " + modeString;
+	std::string str = ":" + client.getNickname() + "!" + client.getUser().username + "@127.0.0.1 MODE " + channelName + " " + modeString;
 	for (size_t i = 2; i < args.size(); i++)
 		str += " " + args[i];
 	str += "\r\n";
@@ -834,7 +856,7 @@ int Server::do_kick(Client &client, std::vector<std::string> &args) {
 }
 
 int	Server::do_topic(Client &client, std::vector<std::string> &args) {
-std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
+	std::string nick = client.getNickname().empty() ? "*" : client.getNickname();
 	if (args.empty()) {
 		safe_send(client, ":127.0.0.1 461 " + nick + " TOPIC :Not enough parameters\r\n");
 		return (USAGE_ERROR);
@@ -959,6 +981,15 @@ void	Server::handleClientData(int clientFd, std::vector<int> &fdsToClose) {
 
 void	Server::disconnectClient(int fd) {
 	DEBUG(LOG_DEBUG << "Entering Server::disconnectClient";);
+	if (_clients.find(fd) != _clients.end()) {
+		std::map<std::string, Channel*>::iterator it = _channels.begin();
+		for (; it != _channels.end(); ++it) {
+			if (it->second->hasMember(fd)) {
+				it->second->removeMember(fd);
+			}
+		}
+		_clients.erase(fd);
+	}
 	close(fd);
 	for (std::vector<pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it) {
 		if (it->fd == fd) {

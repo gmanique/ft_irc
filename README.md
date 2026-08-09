@@ -66,7 +66,7 @@ irssi
 ```
 then
 ```
-/connect 6667 mysecretpassword
+/connect 127.0.0.1 6667 mysecretpassword
 ```
 
 ### Technical Choices
